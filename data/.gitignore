@@ -1,0 +1,6 @@
+# data/
+**/*
+!.gitignore
+!README.md
+!tapmango/
+!tapmango/.gitkeep

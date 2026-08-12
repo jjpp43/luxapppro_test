@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.pem
+data/tapmango/*.csv
+!data/tapmango/.gitkeep
+apps/admin/.next/
+apps/admin/node_modules/
+apps/admin/.env
+apps/admin/.env.*
+!apps/admin/.env.example
+scripts/sql_batches/*.len
+scripts/sql_batches/*_out.txt
+scripts/_sample_batches.json
