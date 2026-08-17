@@ -20,4 +20,4 @@ npm install
 npm run dev
 ```
 
-Expect overview: **100** customers · **3** stores · **9,547** points.
+Expect overview: **196,493** customers · **6** stores · **20,100,952** opening points.

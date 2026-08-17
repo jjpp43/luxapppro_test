@@ -168,7 +168,8 @@ erDiagram
 `lightspeed_sale_id` (unique), `total_cents`, `eligible_cents`, `occurred_at`
 
 **`reward`** / **`redemption`**  
-Config + spend records; redemption always creates a negative ledger row in the same transaction
+Config + spend records; redemption always creates a negative ledger row in the same transaction.  
+v1 catalog: 250 pts → $10 off; 500 pts → $25 off.
 
 **`referral_partner`** / **`referral`**  
 Partner (beautician) linked to their own `customer_id` (blocks self-referral);  
@@ -218,13 +219,15 @@ Admin/tablet actors for `created_by` and RLS
 
 | Topic | Why it shapes schema |
 |---|---|
-| Earn rate / exclusions / returns | Columns on `sale` and ledger `reason`s |
-| Referral economics + hold/return window | `referral` status machine |
-| Referral cross-check | Extra tables vs flags on `referral` |
+| Earn rate, rounding | **Decided:** 1 point per whole dollar (`floor`). Exclusions still open |
+| Reward catalog v1 | **Decided:** 250 pts → $10 off; 500 pts → $25 off |
+| Who may correct points | **Decided:** cashier, manager, owner (staff identity required) |
+| Earn exclusions / returns | Columns on `sale` and ledger `reason`s |
+| Referral economics (payout, customer reward, min basket, pending TTL, return hold, cooling-off, last-touch) | **Deferred — discuss later.** Columns already exist; values are config |
 | Whether beautician “points” are same ledger currency as customer points | Same `points_ledger` vs separate wallet |
 | Staff roles | RLS policies |
 
-Architecture: Lightspeed **X-Series** confirmed (`sale.update` webhooks). Still open: dual-tablet split, PITR after pilot, referral cross-check, earn/return rules.
+Architecture: Lightspeed **X-Series** confirmed (`sale.update` webhooks). Still open: dual-tablet split, PITR after pilot, earn exclusions / returns. Referral economics deferred.
 
 ---
 

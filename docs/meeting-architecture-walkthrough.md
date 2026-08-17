@@ -130,8 +130,8 @@ High priority:
 1. Earn rules — points per $, exclusions, expiry  
 2. Returns/voids — claw back points?  
 3. How tablet phone ties to a Lightspeed sale  
-4. Referral economics + what “cross-check” must mean for v1  
-5. Beautician credit = same points currency or separate payout?
+
+**Later (not this meeting):** referral economics — beautician payout, customer reward, min basket, pending TTL, return hold, cooling-off, last-touch.
 
 Medium:
 

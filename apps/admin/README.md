@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 — overview should show **100** customers, **3** stores, **9,547** opening points.
+Open http://localhost:3000 — overview should show **196,493** customers, **6** stores, **20,100,952** opening points.
 
 ## Notes
 

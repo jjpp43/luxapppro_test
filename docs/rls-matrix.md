@@ -1,7 +1,7 @@
 # RLS matrix and policies
 
 **Status:** Locked  
-**Updated:** 2026-08-12  
+**Updated:** 2026-08-17  
 **Next:** [auth-wiring.md](./auth-wiring.md)
 
 **Hold — do not start yet**
@@ -18,7 +18,7 @@ This document is the source of truth for Supabase Row Level Security before poli
 | Decision | Choice |
 |---|---|
 | **Tablet auth** | Shared **device session** for lookup / enrol / start-earn; **staff identity required** for redeem and balance corrections (PIN unlock or staff login for those actions) |
-| **Corrections** | **Manager + owner only** (cashiers cannot adjust balances) |
+| **Corrections** | **Cashier + manager + owner** (staff identity required — not a bare device session) |
 | **Ledger writes** | **RPC-only** — clients never `INSERT`/`UPDATE`/`DELETE` `points_ledger` |
 | **Partner** | Same Auth user as a customer who has an active `referral_partners` row |
 | **Service role** | Worker only; bypasses RLS; never in Expo or browser bundles |
@@ -238,7 +238,7 @@ Clients do not raw-insert ledger rows. `authenticated` / `anon` have **INSERT/UP
 | `enrol_customer` | Create customer by phone at counter | `device`, `cashier`, `manager`, `owner` |
 | `earn` / `award` | Credit points for a sale (or cashier fallback total) | `service` (Lightspeed webhook); optional `cashier` / `manager` / `owner` for degraded manual earn |
 | `redeem` | Debit points + insert `redemptions` in one transaction | `cashier`, `manager`, `owner` (requires staff elevate on tablet — not bare `device`) |
-| `correct_balance` | Insert compensating ledger row (`reason = correction`) | `manager`, `owner` only |
+| `correct_balance` | Insert compensating ledger row (`reason = correction`) | `cashier`, `manager`, `owner` (requires staff elevate on tablet — not bare `device`) |
 | `issue_referral_token` | Create short-lived single-use token | `partner` |
 | `consume_referral_token` | Attach pending referral (QR path) | `customer` and/or `partner` (manual phone path may be separate RPC) |
 | `merge_customers` | Phone identity merge (later) | `manager`, `owner` |

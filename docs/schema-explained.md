@@ -121,7 +121,14 @@ A successful earn usually creates: one `sales` row + one `points_ledger` row (`r
 
 ### `rewards`
 
-Catalog of what points can buy (“$5 off”, “free item”, …). Configured in admin.
+Catalog of what points can buy. Configured in admin. v1 seed:
+
+| Name | `cost_points` | `kind` | Value |
+|---|---|---|---|
+| $10 off | 250 | `fixed_discount` | 1000 cents |
+| $25 off | 500 | `fixed_discount` | 2500 cents |
+
+These are two catalog rows, not a formula — the dollar value per point is not the same.
 
 | Column | Role |
 |---|---|
@@ -241,10 +248,10 @@ Short-lived codes behind the rotating QR.
 
 Still product decisions (columns may grow):
 
-- Exact earn rate / exclusions (shapes how `eligible_cents` is computed)
+- Tax / gift-card / other exclusions on `eligible_cents` (earn rate itself is frozen: 1 point per $1)
 - Whether returns always write `return_clawback` ledger rows
+- Referral economics — beautician payout, customer reward, min basket, pending TTL, return hold, cooling-off, last-touch (**deferred; discuss later**)
 - Beautician payout = same points currency vs separate wallet (today: referral $ on `referrals`, customer points on ledger)
-- Anti-abuse flags / limits on referrals
 - Device/tablet registry
 
 Those don’t remove the need for these core tables; they add detail on top.

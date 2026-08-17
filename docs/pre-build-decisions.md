@@ -15,7 +15,7 @@
 
 Stack, direct-to-Supabase, points ledger, Lightspeed X webhooks, phone-only signup, US West, PITR after pilot, Pro backups + off-vendor dump.
 
-**RLS matrix locked:** see [`rls-matrix.md`](./rls-matrix.md) — device tablet session + staff elevate for redeem; corrections = manager/owner only; ledger writes RPC-only. **Next:** [`auth-wiring.md`](./auth-wiring.md).
+**RLS matrix locked:** see [`rls-matrix.md`](./rls-matrix.md) — device tablet session + staff elevate for redeem **and corrections**; corrections = cashier + manager + owner; ledger writes RPC-only. **Next:** [`auth-wiring.md`](./auth-wiring.md).
 
 **Hold:** no policy SQL and no junior Supabase writes until auth wiring is agreed.
 
@@ -96,7 +96,7 @@ Also: empty phones in export (58), phone merge when two accounts are one person,
 | OTP + Auth↔customer link + E.164 + merge procedure design | **You** |
 | Tablet auth pattern (A/B/C) | **Both** — you recommend C; PM confirms counter UX tolerance |
 | Twilio / Apple / Google accounts in client’s name | **Client ops / PM** |
-| “Managers only for corrections” | **PM** |
+| Who may correct points | **PM** — decided 2026-08-17: cashier, manager, owner |
 
 ---
 
@@ -107,15 +107,23 @@ The business rules that turn a Lightspeed sale into ledger rows, and what happen
 
 ### Elaborate
 
-**Earn**  
-- Points per dollar?  
-- Round up/down/nearest?  
-- What is **not** eligible (tax, gift cards, already-discounted items)? → drives `eligible_cents`  
-- Do points expire?
+**Earn — for Lightspeed integration later (not a kickoff topic)**  
+- **1 point per $1 of purchase** (`floor(cents / 100)` — leftover cents do not earn)  
+- No expiry unless PM later says otherwise  
+- Tax / gift-card / sale-item exclusions still open → until then `eligible_cents` = sale total  
 
-**Redeem**  
-- Can two rewards stack on one purchase?  
-- Is redemption only at counter, or also in-app (in-app usually needs a code/show-QR flow)?
+**Redeem — for Lightspeed integration later**  
+Catalog is two active rewards (not a formula — $10 and $25 are different rates):
+
+| Reward | Cost | Kind |
+|---|---|---|
+| $10 off | 250 points | `fixed_discount` |
+| $25 off | 500 points | `fixed_discount` |
+
+Still open when we build redeem: can both stack on one purchase? Counter-only vs in-app?
+
+**Manual point updates — for tablet/admin later**  
+Cashier, manager, and owner may adjust a balance. UI looks like an edit; database inserts a `correction` ledger row with `created_by` + reason. Bare tablet device session is **not** enough — staff identity (PIN / login) required, same as redeem.
 
 **Returns / voids / layby**  
 - When Lightspeed refunds, do we insert `return_clawback`?  
@@ -134,7 +142,7 @@ The business rules that turn a Lightspeed sale into ledger rows, and what happen
 | Match-window engineering + fallback UX | **You** (PM confirms “good enough” behavior) |
 | Exact RPC implementation | **You** |
 
-**Meeting ask for PM:** bring current TapMango earn rules if they exist; confirm returns behavior.
+**When we wire Lightspeed:** apply 1 pt / $1 on `eligible_cents`; seed the two discount rewards; `correct_balance` executable by cashier/manager/owner. Ask then about tax/gift cards, returns clawback, and stacking.
 
 ---
 
@@ -145,23 +153,32 @@ How beauticians get credit, customers get a discount, and you limit abuse.
 
 ### Elaborate
 
-**Economics**  
-- What does the beautician earn (flat points, % of basket, store credit, cash payout)?  
-- What does the customer get (discount % / $ / bonus points)?  
-- Min basket to qualify?  
-- How long is the return **hold** before payout (`hold_until`)?
+**Economics — deferred, cannot decide yet**  
+Park until a later product conversation. Schema already has the columns (`status`, `hold_until`, `attributed_amount_cents`); amounts and rules are configuration, not a redesign.
+
+| Question | Status |
+|---|---|
+| What the beautician earns | **Later** |
+| What the customer gets | **Later** |
+| Minimum basket to qualify | **Later** |
+| How long a pending referral lasts | **Later** (technical default on the table: 30 days — not a product sign-off) |
+| Return hold before payout | **Later** |
+| Cooling-off (same beautician + same customer) | **Later** |
+| Last-touch if two beauticians referred them | **Later** |
+
+Do not block partner/QR build on these. Use placeholders in admin until PM decides.
+
+**Currency**
 
 **Currency**  
 - Beautician “points” on the **same** `points_ledger` as shoppers?  
 - Or **no points** — only a payout report from `attributed_amount_cents`?  
 This changes schema/RLS and the app’s “earnings” screen.
 
-**Cross-check / anti-abuse (still open by design)**  
-Examples you can propose; PM picks appetite for v1:  
-- Cap manual phone entries per day  
-- Flag partners with weird manual:QR ratios  
-- Cool-down (same partner + same customer once per month)  
-- Last-touch wins if two partners claim  
+**Cross-check / anti-abuse — deferred with economics**  
+Cooling-off and last-touch sit with the list above. Cheap flags (cap manual entries, odd QR:manual ratio) can wait for the same conversation.
+
+**Tokens**  
 
 **Tokens**  
 60s TTL + single-use is a technical default; PM rarely cares unless UX complains.
@@ -173,9 +190,9 @@ Is the discount applied in **Lightspeed** (coupon), as a **loyalty reward**, or 
 
 | Piece | Owner |
 |---|---|
-| Economics, hold window, min basket, what customer gets | **PM** |
+| Economics, hold, min basket, customer reward, cooling-off, last-touch | **PM — later.** Not this meeting. |
 | Same ledger vs payout-only for beauticians | **Both** — you explain tradeoffs; PM picks |
-| Anti-abuse rules for v1 | **Both** — you propose a small set; PM accepts |
+| Anti-abuse rules for v1 | **Later** (same conversation as economics) |
 | Token TTL, QR UX, schema for statuses | **You** |
 | How discount is applied at POS | **PM** (+ you say if it forces Lightspeed write) |
 

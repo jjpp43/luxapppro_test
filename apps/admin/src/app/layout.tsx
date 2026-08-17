@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { DM_Sans, Newsreader } from "next/font/google";
+import { AppShell } from "@/components/shell/AppShell";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const body = DM_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const display = Newsreader({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: "Lux Pro Admin",
-  description: "Staging admin — verify TapMango sample import",
+  description: "Lux Beauty Supply loyalty admin",
 };
 
 export default function RootLayout({
@@ -24,30 +26,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
-        <header className="border-b border-zinc-200 bg-white">
-          <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
-            <Link href="/" className="font-semibold tracking-tight">
-              Lux Pro Admin
-            </Link>
-            <nav className="flex gap-4 text-sm text-zinc-600">
-              <Link href="/" className="hover:text-zinc-900">
-                Overview
-              </Link>
-              <Link href="/customers" className="hover:text-zinc-900">
-                Customers
-              </Link>
-            </nav>
-            <span className="ml-auto rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
-              Staging sample
-            </span>
-          </div>
-        </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+    <html lang="en" className={`${body.variable} ${display.variable} h-full`}>
+      <body className="h-full antialiased">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -311,4 +311,5 @@ Still to nail in integration design (not blockers for “can we webhook?”):
 - **Points ledger** — append-only history in Supabase; balance = sum(delta)
 - **Lightspeed X-Series** — primary earn via `sale.update` webhooks; cashier-entered fallback secondary
 - **PITR** — after pilot
-- **RLS matrix** — locked in `docs/rls-matrix.md` (device tablet + staff elevate for redeem; corrections manager/owner only; ledger RPC-only)
+- **RLS matrix** — locked in `docs/rls-matrix.md` (device tablet + staff elevate for redeem **and corrections**; cashier + manager + owner may correct; ledger RPC-only)
+- **Earn / rewards (later, Lightspeed worker)** — 1 point per $1; 250 pts = $10 off; 500 pts = $25 off (`docs/pre-build-decisions.md` §3). Not a kickoff talking point.
