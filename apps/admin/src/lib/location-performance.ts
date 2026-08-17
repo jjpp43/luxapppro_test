@@ -1,4 +1,8 @@
-import { HEALTH_WINDOWS, pacificDateDaysAgo } from "@/lib/customer-health";
+import {
+  HEALTH_WINDOWS,
+  pacificDateDaysAgo,
+  pacificDateDaysAgoFrom,
+} from "@/lib/customer-health";
 import { supabase } from "@/lib/supabase";
 
 export type LocationWindowDays = 30 | 90;
@@ -10,14 +14,18 @@ export type LocationPerformanceRow = {
   visited30: number;
   visited90: number;
   lapsing: number;
-  /** Null until Lightspeed sales are ingested. */
-  avgSpendCents: number | null;
-  /** Avg visits per customer per month in the window. Null until sales exist. */
-  visitFrequency: number | null;
+  /** Null when this location has no closed sales in the window. */
+  avgSpendCents30: number | null;
+  avgSpendCents90: number | null;
+  /** Avg visits per enrolled customer per month. Null without sales. */
+  visitFrequency30: number | null;
+  visitFrequency90: number | null;
 };
 
 export type LocationPerformanceData = {
   rows: LocationPerformanceRow[];
+  /** ISO timestamp of newest ingested sale; sales windows are anchored here. */
+  salesAsOf: string | null;
 };
 
 async function countOrZero(
@@ -28,9 +36,58 @@ async function countOrZero(
   return count ?? 0;
 }
 
+type SaleRow = {
+  store_id: string | null;
+  total_cents: number;
+  occurred_at: string;
+};
+
+async function fetchClosedSalesSince(sinceDate: string): Promise<SaleRow[]> {
+  const pageSize = 1000;
+  const all: SaleRow[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("sales")
+      .select("store_id, total_cents, occurred_at")
+      .eq("state", "closed")
+      .gte("occurred_at", sinceDate)
+      .order("occurred_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw new Error(error.message);
+    if (!data?.length) break;
+    all.push(...(data as SaleRow[]));
+    if (data.length < pageSize) break;
+  }
+  return all;
+}
+
+function aggregateSales(
+  sales: SaleRow[],
+  storeId: string,
+  sinceDate: string,
+  windowDays: LocationWindowDays,
+  enrolled: number
+): { avgSpendCents: number | null; visitFrequency: number | null } {
+  const inWindow = sales.filter(
+    (s) => s.store_id === storeId && s.occurred_at.slice(0, 10) >= sinceDate
+  );
+  if (inWindow.length === 0) {
+    return { avgSpendCents: null, visitFrequency: null };
+  }
+
+  const sum = inWindow.reduce((acc, s) => acc + (s.total_cents ?? 0), 0);
+  const avgSpendCents = Math.round(sum / inWindow.length);
+  const months = windowDays / 30;
+  const visitFrequency =
+    enrolled > 0 ? inWindow.length / enrolled / months : null;
+
+  return { avgSpendCents, visitFrequency };
+}
+
 export async function fetchLocationPerformance(): Promise<LocationPerformanceData> {
-  const since30 = pacificDateDaysAgo(30);
-  const since90 = pacificDateDaysAgo(90);
+  const since30Live = pacificDateDaysAgo(30);
+  const since90Live = pacificDateDaysAgo(90);
   const lapsingFrom = pacificDateDaysAgo(HEALTH_WINDOWS.lapsingToDays);
   const lapsingTo = pacificDateDaysAgo(HEALTH_WINDOWS.activeDays);
 
@@ -41,8 +98,26 @@ export async function fetchLocationPerformance(): Promise<LocationPerformanceDat
     .order("name");
 
   if (error || !stores?.length) {
-    return { rows: [] };
+    return { rows: [], salesAsOf: null };
   }
+
+  const { data: latestSale, error: latestError } = await supabase
+    .from("sales")
+    .select("occurred_at")
+    .eq("state", "closed")
+    .order("occurred_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestError) throw new Error(latestError.message);
+
+  const salesAsOf = latestSale?.occurred_at ?? null;
+  // Anchor spend/frequency to newest ingested sale so historical imports still compute.
+  const asOfDate = salesAsOf ? new Date(salesAsOf) : new Date();
+  const since30Sales = pacificDateDaysAgoFrom(asOfDate, 30);
+  const since90Sales = pacificDateDaysAgoFrom(asOfDate, 90);
+
+  const sales = salesAsOf ? await fetchClosedSalesSince(since90Sales) : [];
 
   const rows = await Promise.all(
     stores.map(async (store) => {
@@ -54,12 +129,15 @@ export async function fetchLocationPerformance(): Promise<LocationPerformanceDat
 
       const [totalCustomers, visited30, visited90, lapsing] = await Promise.all([
         countOrZero(base()),
-        countOrZero(base().gte("last_seen_at", since30)),
-        countOrZero(base().gte("last_seen_at", since90)),
+        countOrZero(base().gte("last_seen_at", since30Live)),
+        countOrZero(base().gte("last_seen_at", since90Live)),
         countOrZero(
           base().gte("last_seen_at", lapsingFrom).lt("last_seen_at", lapsingTo)
         ),
       ]);
+
+      const m30 = aggregateSales(sales, store.id, since30Sales, 30, totalCustomers);
+      const m90 = aggregateSales(sales, store.id, since90Sales, 90, totalCustomers);
 
       return {
         id: store.id,
@@ -68,13 +146,15 @@ export async function fetchLocationPerformance(): Promise<LocationPerformanceDat
         visited30,
         visited90,
         lapsing,
-        avgSpendCents: null,
-        visitFrequency: null,
+        avgSpendCents30: m30.avgSpendCents,
+        avgSpendCents90: m90.avgSpendCents,
+        visitFrequency30: m30.visitFrequency,
+        visitFrequency90: m90.visitFrequency,
       } satisfies LocationPerformanceRow;
     })
   );
 
-  return { rows };
+  return { rows, salesAsOf };
 }
 
 export function activeCount(row: LocationPerformanceRow, window: LocationWindowDays) {
@@ -84,4 +164,18 @@ export function activeCount(row: LocationPerformanceRow, window: LocationWindowD
 export function activeRatePct(row: LocationPerformanceRow, window: LocationWindowDays) {
   if (row.totalCustomers <= 0) return 0;
   return Math.round((activeCount(row, window) / row.totalCustomers) * 100);
+}
+
+export function avgSpendCents(
+  row: LocationPerformanceRow,
+  window: LocationWindowDays
+): number | null {
+  return window === 30 ? row.avgSpendCents30 : row.avgSpendCents90;
+}
+
+export function visitFrequency(
+  row: LocationPerformanceRow,
+  window: LocationWindowDays
+): number | null {
+  return window === 30 ? row.visitFrequency30 : row.visitFrequency90;
 }

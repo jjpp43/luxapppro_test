@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import {
   activeRatePct,
+  avgSpendCents,
   type LocationPerformanceData,
   type LocationPerformanceRow,
   type LocationWindowDays,
+  visitFrequency,
 } from "@/lib/location-performance";
 
 type SortKey =
@@ -58,6 +60,17 @@ function formatCount(n: number) {
   return n.toLocaleString("en-US");
 }
 
+function formatMoney(cents: number) {
+  return `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatFrequency(n: number) {
+  return `${n.toFixed(n >= 10 ? 1 : 2)}x`;
+}
+
 function displayName(name: string) {
   return name.replace(" - ", " – ");
 }
@@ -92,9 +105,9 @@ function sortValue(
     case "activeRate":
       return activeRatePct(row, window);
     case "avgSpend":
-      return row.avgSpendCents ?? -1;
+      return avgSpendCents(row, window) ?? -1;
     case "visitFrequency":
-      return row.visitFrequency ?? -1;
+      return visitFrequency(row, window) ?? -1;
     case "lapsing":
       return row.lapsing;
   }
@@ -122,6 +135,17 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
 
   const leader = ranked[0];
   const leaderRate = leader ? activeRatePct(leader, windowDays) : 0;
+  const leaderSpend = leader ? avgSpendCents(leader, windowDays) : null;
+  const leaderFreq = leader ? visitFrequency(leader, windowDays) : null;
+
+  const salesAsOfLabel = data.salesAsOf
+    ? new Date(data.salesAsOf).toLocaleDateString("en-US", {
+        timeZone: "America/Los_Angeles",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   function onSort(key: SortKey) {
     if (sortKey === key) {
@@ -141,6 +165,9 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
           </h2>
           <p className="mt-0.5 text-sm text-[#6b7280]">
             Your locations ranked by customer base and engagement health.
+            {salesAsOfLabel
+              ? ` Spend and frequency use Lightspeed sales as of ${salesAsOfLabel}.`
+              : ""}
           </p>
         </div>
         <label className="sr-only" htmlFor="location-window">
@@ -162,13 +189,9 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
           <span className="font-semibold">{displayName(leader.name)} is leading.</span>{" "}
           <span>
             {leaderRate}% active rate
-            {leader.avgSpendCents != null
-              ? ` · $${(leader.avgSpendCents / 100).toFixed(2)} avg spend`
-              : ""}
-            {leader.visitFrequency != null
-              ? ` · ${leader.visitFrequency.toFixed(1)}x frequency`
-              : ""}
-            {leader.avgSpendCents == null
+            {leaderSpend != null ? ` · ${formatMoney(leaderSpend)} avg spend` : ""}
+            {leaderFreq != null ? ` · ${formatFrequency(leaderFreq)} frequency` : ""}
+            {leaderSpend == null
               ? " · Spend and frequency appear when Lightspeed sales are connected."
               : ""}
           </span>
@@ -211,6 +234,8 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
           <tbody>
             {ranked.map((row, i) => {
               const rate = activeRatePct(row, windowDays);
+              const spend = avgSpendCents(row, windowDays);
+              const freq = visitFrequency(row, windowDays);
               return (
                 <tr key={row.id} className="border-b border-[#eef1f4] last:border-b-0">
                   <td className="py-3 pr-2 font-medium text-[#9aa3ad]">#{i + 1}</td>
@@ -223,8 +248,16 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
                   <td className="py-3 pl-3 text-right tabular-nums font-medium text-[#111827]">
                     {rate}%
                   </td>
-                  <td className="py-3 pl-3 text-right tabular-nums text-[#9aa3ad]">—</td>
-                  <td className="py-3 pl-3 text-right tabular-nums text-[#9aa3ad]">—</td>
+                  <td
+                    className={`py-3 pl-3 text-right tabular-nums ${spend != null ? "text-[#111827]" : "text-[#9aa3ad]"}`}
+                  >
+                    {spend != null ? formatMoney(spend) : "—"}
+                  </td>
+                  <td
+                    className={`py-3 pl-3 text-right tabular-nums ${freq != null ? "text-[#111827]" : "text-[#9aa3ad]"}`}
+                  >
+                    {freq != null ? formatFrequency(freq) : "—"}
+                  </td>
                   <td className="py-3 pl-3 text-right tabular-nums text-[#111827]">
                     {formatCount(row.lapsing)}
                   </td>

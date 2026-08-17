@@ -57,7 +57,7 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="sticky top-0 flex h-dvh w-[250px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--sidebar)]">
+    <aside className="flex h-full max-h-dvh w-[250px] shrink-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--sidebar)]">
       <div className="shrink-0 border-b border-[var(--border)] px-4 py-4">
         <Link href="/" className="block">
           <div className="font-[family-name:var(--font-display)] text-[1.35rem] font-semibold tracking-tight text-[var(--ink)]">
@@ -85,7 +85,7 @@ export function Sidebar() {
         </label>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3">
         <ul className="space-y-0.5">
           {filtered.map((item) => {
             const hasChildren = Boolean(item.children?.length);

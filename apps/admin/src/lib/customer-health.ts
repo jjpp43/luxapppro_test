@@ -42,19 +42,23 @@ export type CustomerHealthSnapshotData = {
 
 type CountQuery = PromiseLike<{ count: number | null; error: { message: string } | null }>;
 
-export function pacificDateDaysAgo(days: number): string {
+export function pacificDateDaysAgoFrom(from: Date, days: number): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(from);
   const y = Number(parts.find((p) => p.type === "year")?.value);
   const m = Number(parts.find((p) => p.type === "month")?.value);
   const d = Number(parts.find((p) => p.type === "day")?.value);
   const noonUtc = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
   noonUtc.setUTCDate(noonUtc.getUTCDate() - days);
   return noonUtc.toISOString().slice(0, 10);
+}
+
+export function pacificDateDaysAgo(days: number): string {
+  return pacificDateDaysAgoFrom(new Date(), days);
 }
 
 function notNewOrFilter(enrolledSince: string) {
