@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import {
   activeRatePct,
   avgSpendCents,
@@ -170,18 +171,16 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
               : ""}
           </p>
         </div>
-        <label className="sr-only" htmlFor="location-window">
-          Time window
-        </label>
-        <select
-          id="location-window"
-          value={windowDays}
-          onChange={(e) => setWindowDays(Number(e.target.value) as LocationWindowDays)}
-          className="rounded-md border border-[#e6e8eb] bg-white px-3 py-1.5 text-sm text-[#111827] outline-none focus:border-[var(--accent)]"
-        >
-          <option value={90}>Last 90 days</option>
-          <option value={30}>Last 30 days</option>
-        </select>
+        <SelectMenu
+          ariaLabel="Time window"
+          value={String(windowDays) as "30" | "90"}
+          options={[
+            { value: "90", label: "Last 90 days" },
+            { value: "30", label: "Last 30 days" },
+          ]}
+          onChange={(v) => setWindowDays(Number(v) as LocationWindowDays)}
+          align="right"
+        />
       </div>
 
       {leader ? (

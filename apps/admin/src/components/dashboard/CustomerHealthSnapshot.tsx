@@ -12,7 +12,17 @@ function niceCeiling(max: number) {
   if (max <= 0) return 10;
   const padded = max * 1.1;
   const step =
-    padded > 20_000 ? 5_000 : padded > 5_000 ? 1_000 : padded > 1_000 ? 250 : padded > 100 ? 20 : padded > 20 ? 5 : 1;
+    padded > 20_000
+      ? 5_000
+      : padded > 5_000
+        ? 1_000
+        : padded > 1_000
+          ? 250
+          : padded > 100
+            ? 20
+            : padded > 20
+              ? 5
+              : 1;
   return Math.max(step, Math.ceil(padded / step) * step);
 }
 
@@ -47,7 +57,11 @@ function Trend({ value }: { value: number | null }) {
   }
   const up = value > 0;
   const flat = value === 0;
-  const color = flat ? "text-[#8b95a1]" : up ? "text-[#18a34a]" : "text-[#e11d48]";
+  const color = flat
+    ? "text-[#8b95a1]"
+    : up
+      ? "text-[#18a34a]"
+      : "text-[#e11d48]";
   const arrow = flat ? "→" : up ? "↑" : "↓";
   const label = `${up ? "+" : ""}${value}%`;
   return (
@@ -57,12 +71,21 @@ function Trend({ value }: { value: number | null }) {
   );
 }
 
-function HealthChart({ buckets, yMax }: { buckets: HealthBucket[]; yMax: number }) {
+function HealthChart({
+  buckets,
+  yMax,
+}: {
+  buckets: HealthBucket[];
+  yMax: number;
+}) {
   const ticks = 10;
-  const tickValues = Array.from({ length: ticks }, (_, i) => (yMax / (ticks - 1)) * i).reverse();
+  const tickValues = Array.from(
+    { length: ticks },
+    (_, i) => (yMax / (ticks - 1)) * i,
+  ).reverse();
 
   return (
-    <div className="flex min-h-[320px] min-w-0 flex-1 gap-1">
+    <div className="flex min-h-[260px] min-w-0 flex-1 gap-1">
       <div className="flex w-8 shrink-0 items-center justify-center pb-8">
         <span
           className="text-[11px] text-[#9aa3ad]"
@@ -72,7 +95,7 @@ function HealthChart({ buckets, yMax }: { buckets: HealthBucket[]; yMax: number 
         </span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="relative flex min-h-[280px] flex-1">
+        <div className="relative flex min-h-[220px] flex-1">
           <div className="flex w-8 shrink-0 flex-col justify-between pr-1 text-right text-[11px] leading-none text-[#9aa3ad]">
             {tickValues.map((v) => (
               <span key={v}>{formatTick(v)}</span>
@@ -88,10 +111,16 @@ function HealthChart({ buckets, yMax }: { buckets: HealthBucket[]; yMax: number 
               {buckets.map((bucket) => {
                 const h = yMax > 0 ? (bucket.count / yMax) * 100 : 0;
                 return (
-                  <div key={bucket.key} className="flex h-full w-full max-w-[72px] items-end justify-center px-2">
+                  <div
+                    key={bucket.key}
+                    className="flex h-full w-full max-w-[108px] items-end justify-center px-2"
+                  >
                     <div
                       className="w-full rounded-t-md"
-                      style={{ height: `${Math.max(h, bucket.count > 0 ? 1.5 : 0)}%`, background: bucket.color }}
+                      style={{
+                        height: `${Math.max(h, bucket.count > 0 ? 1.5 : 0)}%`,
+                        background: bucket.color,
+                      }}
                       title={`${bucket.label}: ${formatCount(bucket.count)}`}
                     />
                   </div>
@@ -104,13 +133,18 @@ function HealthChart({ buckets, yMax }: { buckets: HealthBucket[]; yMax: number 
           <div className="w-8 shrink-0" />
           <div className="flex min-w-0 flex-1 justify-around px-6 pt-2">
             {buckets.map((bucket) => (
-              <div key={bucket.key} className="w-full max-w-[72px] text-center text-xs text-[#6b7280]">
+              <div
+                key={bucket.key}
+                className="w-full max-w-[72px] text-center text-xs text-[#6b7280]"
+              >
                 {bucket.label}
               </div>
             ))}
           </div>
         </div>
-        <div className="mt-1 pr-2 text-center text-[11px] text-[#9aa3ad]">Status</div>
+        <div className="mt-1 pr-2 text-center text-[11px] text-[#9aa3ad]">
+          Status
+        </div>
       </div>
     </div>
   );
@@ -127,7 +161,9 @@ function BucketRow({ bucket }: { bucket: HealthBucket }) {
             style={{ background: bucket.color }}
             aria-hidden
           />
-          <span className="text-sm font-semibold text-[#111827]">{bucket.label}</span>
+          <span className="text-sm font-semibold text-[#111827]">
+            {bucket.label}
+          </span>
           <InfoTip text={definition} />
         </div>
         <Trend value={bucket.trendPct} />
@@ -136,12 +172,18 @@ function BucketRow({ bucket }: { bucket: HealthBucket }) {
         {formatCount(bucket.count)}{" "}
         <span className="font-normal text-[#6b7280]">Customers</span>
       </div>
-      <div className="pl-[18px] text-xs text-[#9aa3ad]">{bucket.pctOfTotal}% of total</div>
+      <div className="pl-[18px] text-xs text-[#9aa3ad]">
+        {bucket.pctOfTotal}% of total
+      </div>
     </div>
   );
 }
 
-export function CustomerHealthSnapshot({ data }: { data: CustomerHealthSnapshotData }) {
+export function CustomerHealthSnapshot({
+  data,
+}: {
+  data: CustomerHealthSnapshotData;
+}) {
   const chartBuckets = data.buckets.filter((b) => b.inChart);
   const yMax = niceCeiling(Math.max(0, ...chartBuckets.map((b) => b.count)));
 
@@ -155,7 +197,9 @@ export function CustomerHealthSnapshot({ data }: { data: CustomerHealthSnapshotD
       </p>
       <p className="mt-4 text-[28px] font-semibold leading-none tracking-tight text-[#111827]">
         {formatCount(data.total)}{" "}
-        <span className="text-base font-medium text-[#6b7280]">Total Customers Enrolled</span>
+        <span className="text-base font-medium text-[#6b7280]">
+          Total Customers Enrolled
+        </span>
       </p>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(240px,0.75fr)] lg:items-stretch">

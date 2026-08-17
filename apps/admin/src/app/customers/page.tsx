@@ -1,15 +1,40 @@
 import Link from "next/link";
+import { PerPageSelect } from "./PerPageSelect";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ q?: string; store?: string }>;
+type SearchParams = Promise<{ q?: string; store?: string; per?: string; page?: string }>;
 
-function customersHref({ q, store }: { q?: string; store?: string }) {
+const PAGE_SIZES = [50, 100, 200] as const;
+
+function parsePer(raw?: string) {
+  const n = Number(raw);
+  return (PAGE_SIZES as readonly number[]).includes(n) ? n : 50;
+}
+
+function parsePage(raw?: string) {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 1 ? n : 1;
+}
+
+function customersHref({
+  q,
+  store,
+  per,
+  page,
+}: {
+  q?: string;
+  store?: string;
+  per?: number;
+  page?: number;
+}) {
   const p = new URLSearchParams();
   if (q) p.set("q", q);
   if (store) p.set("store", store);
+  if (per && per !== 50) p.set("per", String(per));
+  if (page && page > 1) p.set("page", String(page));
   const qs = p.toString();
   return qs ? `/customers?${qs}` : "/customers";
 }
@@ -31,9 +56,11 @@ export default async function CustomersPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { q, store: storeParam } = await searchParams;
+  const { q, store: storeParam, per: perParam, page: pageParam } = await searchParams;
   const query = (q ?? "").trim();
   const selectedStore = (storeParam ?? "").trim();
+  const per = parsePer(perParam);
+  const page = parsePage(pageParam);
 
   const { data: stores } = await supabase.from("stores").select("id, name").order("name");
   const storeList = stores ?? [];
@@ -48,7 +75,7 @@ export default async function CustomersPage({
           "id, phone, name, email, legacy_tapmango_id, last_seen_at, lifetime_points_at_migration, stores(name), customer_balance(balance)"
         )
         .order("created_at", { ascending: true })
-        .limit(200);
+        .range((page - 1) * per, page * per - 1);
 
       if (selectedStore) {
         customersQuery = customersQuery.eq("home_store_id", selectedStore);
@@ -75,8 +102,10 @@ export default async function CustomersPage({
   ]);
 
   const { data: customers, error } = customersResult;
-  const shown = (customers ?? []).length;
   const selectedName = storeList.find((s) => s.id === selectedStore)?.name;
+  const totalPages = Math.max(1, Math.ceil(filteredCount / per));
+  const from = filteredCount === 0 ? 0 : (page - 1) * per + 1;
+  const to = Math.min(page * per, filteredCount);
 
   return (
     <div>
@@ -99,7 +128,7 @@ export default async function CustomersPage({
 
       <div className="mb-4 flex flex-wrap gap-2">
         <FilterChip
-          href={customersHref({ q: query || undefined })}
+          href={customersHref({ q: query || undefined, per })}
           label="All"
           count={totalCount}
           active={!selectedStore}
@@ -107,7 +136,7 @@ export default async function CustomersPage({
         {storeList.map((s, i) => (
           <FilterChip
             key={s.id}
-            href={customersHref({ q: query || undefined, store: s.id })}
+            href={customersHref({ q: query || undefined, store: s.id, per })}
             label={displayStoreName(s.name)}
             count={storeCounts[i] ?? 0}
             active={selectedStore === s.id}
@@ -118,28 +147,36 @@ export default async function CustomersPage({
       <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
           <div className="text-sm text-[var(--muted)]">
-            Showing {shown.toLocaleString("en-US")} of {filteredCount.toLocaleString("en-US")}
+            Showing {from.toLocaleString("en-US")}–{to.toLocaleString("en-US")} of{" "}
+            {filteredCount.toLocaleString("en-US")}
             {selectedName ? ` · ${displayStoreName(selectedName)}` : ""}
-            {filteredCount > shown ? " (first 200)" : ""}
           </div>
-          <form className="flex gap-2">
-            {selectedStore ? (
-              <input type="hidden" name="store" value={selectedStore} />
-            ) : null}
-            <input
-              type="search"
-              name="q"
-              defaultValue={query}
-              placeholder="Phone, name, email, TapMango id"
-              className="w-72 rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+          <div className="flex flex-wrap items-center gap-3">
+            <PerPageSelect
+              per={per}
+              q={query || undefined}
+              store={selectedStore || undefined}
             />
-            <button
-              type="submit"
-              className="rounded-md border border-[var(--border)] bg-[var(--canvas)] px-3 py-2 text-sm font-medium hover:bg-white"
-            >
-              Search
-            </button>
-          </form>
+            <form className="flex gap-2">
+              {selectedStore ? (
+                <input type="hidden" name="store" value={selectedStore} />
+              ) : null}
+              {per !== 50 ? <input type="hidden" name="per" value={per} /> : null}
+              <input
+                type="search"
+                name="q"
+                defaultValue={query}
+                placeholder="Phone, name, email, TapMango id"
+                className="w-72 rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+              />
+              <button
+                type="submit"
+                className="rounded-md border border-[var(--border)] bg-[var(--canvas)] px-3 py-2 text-sm font-medium hover:bg-white"
+              >
+                Search
+              </button>
+            </form>
+          </div>
         </div>
 
         {error ? (
@@ -214,6 +251,50 @@ export default async function CustomersPage({
             </tbody>
           </table>
         </div>
+
+        {filteredCount > per ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 text-sm">
+            <span className="text-[var(--muted)]">
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex gap-2">
+              {page > 1 ? (
+                <Link
+                  href={customersHref({
+                    q: query || undefined,
+                    store: selectedStore || undefined,
+                    per,
+                    page: page - 1,
+                  })}
+                  className="rounded-md border border-[var(--border)] bg-[var(--canvas)] px-3 py-1.5 font-medium hover:bg-white"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[var(--muted)]">
+                  Previous
+                </span>
+              )}
+              {page * per < filteredCount ? (
+                <Link
+                  href={customersHref({
+                    q: query || undefined,
+                    store: selectedStore || undefined,
+                    per,
+                    page: page + 1,
+                  })}
+                  className="rounded-md border border-[var(--border)] bg-[var(--canvas)] px-3 py-1.5 font-medium hover:bg-white"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[var(--muted)]">
+                  Next
+                </span>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
