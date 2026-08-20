@@ -39,9 +39,10 @@ Win for customer, beautician, and store. A **cross-checking / anti-abuse system*
 
 ## Open / next
 
+- Living roadmap and task list: [`roadmap.md`](./roadmap.md)
 - Architecture direction drafted in `architecture.md` (Supabase, Next.js, Expo, Fly/Railway worker)
-- Referral verification / cross-check design
+- Auth wiring before RLS SQL (`auth-wiring.md`)
+- Referral verification / cross-check design (economics deferred)
 - Full TapMango feature parity vs “basic” admin scope
-- Migration of ~200k TapMango customers (CSV export in hand)
-- Tablet hardware after leaving TapMango (current devices are theirs)
-- Lightspeed **X-Series** confirmed — worker will use `sale.update` webhooks
+- Lightspeed accounts for stores other than Decatur
+- Tablet hardware after leaving TapMango

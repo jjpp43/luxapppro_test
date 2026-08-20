@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { BusinessPulse } from "@/components/dashboard/BusinessPulse";
 import { CustomerHealthSnapshot } from "@/components/dashboard/CustomerHealthSnapshot";
 import { LocationPerformance } from "@/components/dashboard/LocationPerformance";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { fetchBusinessPulse } from "@/lib/business-pulse";
 import { fetchCustomerHealth } from "@/lib/customer-health";
 import { fetchLocationPerformance } from "@/lib/location-performance";
 import { supabase } from "@/lib/supabase";
@@ -9,65 +11,26 @@ import { supabase } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [health, locations, { data: recent }] = await Promise.all([
+  const [health, locations, pulse, { data: recent }] = await Promise.all([
     fetchCustomerHealth(),
     fetchLocationPerformance(),
+    fetchBusinessPulse(),
     supabase
       .from("customers")
       .select("id, name, phone, last_seen_at, stores(name)")
       .order("last_seen_at", { ascending: false, nullsFirst: false })
       .limit(5),
   ]);
-  const customerCount = health.total;
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
-        subtitle="Business pulse for Lux Beauty Supply — last 90 days once sales ingest is live."
+        subtitle="Business pulse for Lux Beauty Supply."
         crumbs={[{ label: "Home", href: "/" }, { label: "Dashboard" }]}
       />
 
-      <section>
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--ink)]">Business Pulse</h2>
-            <p className="text-sm text-[var(--muted)]">
-              How your customers and revenue are performing across all locations.
-            </p>
-          </div>
-          <span className="rounded-md border border-[var(--border)] bg-white px-2.5 py-1 text-xs text-[var(--muted)]">
-            Last 90 days
-          </span>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <PulseCard
-            label="Total Customers"
-            value={(customerCount ?? 0).toLocaleString()}
-            tone="rose"
-            footnote="Enrolled in Lux Pro (full TapMango import)"
-          />
-          <PulseCard
-            label="Engaged Customers"
-            value="—"
-            tone="blue"
-            footnote="Unique customers who visited this period"
-          />
-          <PulseCard
-            label="Avg Spend / Visit"
-            value="—"
-            tone="green"
-            footnote="Across n visits — needs POS sales"
-          />
-          <PulseCard
-            label="Monthly Visit Rate"
-            value="—"
-            tone="ink"
-            footnote="Visits per customer / month"
-          />
-        </div>
-      </section>
+      <BusinessPulse data={pulse} />
 
       <CustomerHealthSnapshot data={health} />
 
@@ -125,40 +88,6 @@ export default async function DashboardPage() {
           </table>
         </div>
       </section>
-    </div>
-  );
-}
-
-function PulseCard({
-  label,
-  value,
-  footnote,
-  tone,
-}: {
-  label: string;
-  value: string;
-  footnote: string;
-  tone: "rose" | "ink" | "green" | "blue";
-}) {
-  const bar =
-    tone === "rose"
-      ? "bg-[var(--accent)]"
-      : tone === "green"
-        ? "bg-[var(--good)]"
-        : tone === "blue"
-          ? "bg-[var(--info)]"
-          : "bg-[var(--ink)]";
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
-      <div className={`h-1 ${bar}`} />
-      <div className="p-4">
-        <div className="text-sm text-[var(--muted)]">{label}</div>
-        <div className="mt-1 text-3xl font-semibold tabular-nums tracking-tight">
-          {value}
-        </div>
-        <div className="mt-2 text-xs text-[var(--muted)]">{footnote}</div>
-      </div>
     </div>
   );
 }

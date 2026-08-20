@@ -1,7 +1,7 @@
 # Architecture — draft notes
 
-**Updated:** 2026-08-10  
-**Status:** Direction agreed in conversation; details still open
+**Updated:** 2026-08-20  
+**Status:** Direction agreed; living task list is [`roadmap.md`](./roadmap.md)
 
 ## Proposed stack
 
