@@ -18,7 +18,7 @@ export default async function NewUserPage({
     .from("stores")
     .select("id, name")
     .eq("active", true)
-    .order("name");
+    .order("sort_rank");
 
   return (
     <div>

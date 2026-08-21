@@ -25,7 +25,7 @@ export default async function EditUserPage({
       .eq("id", id)
       .in("role", ["manager", "owner"])
       .maybeSingle(),
-    admin.from("stores").select("id, name").eq("active", true).order("name"),
+    admin.from("stores").select("id, name").eq("active", true).order("sort_rank"),
   ]);
 
   return (

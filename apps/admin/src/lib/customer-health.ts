@@ -24,6 +24,22 @@ export const HEALTH_DEFINITIONS = {
 
 export type HealthKey = keyof typeof HEALTH_DEFINITIONS;
 
+export const HEALTH_LABELS: Record<HealthKey, string> = {
+  new: "New",
+  active: "Active",
+  lapsing: "Lapsing",
+  atRisk: "At-Risk",
+  inactive: "Inactive",
+};
+
+export const HEALTH_QUERY_VALUES: Record<HealthKey, string> = {
+  new: "new",
+  active: "active",
+  lapsing: "lapsing",
+  atRisk: "at-risk",
+  inactive: "inactive",
+};
+
 export type HealthBucket = {
   key: HealthKey;
   label: string;
@@ -61,8 +77,47 @@ export function pacificDateDaysAgo(days: number): string {
   return pacificDateDaysAgoFrom(new Date(), days);
 }
 
+export function parseHealthQuery(value: string | undefined): HealthKey | null {
+  if (!value) return null;
+  const match = Object.entries(HEALTH_QUERY_VALUES).find(
+    ([, queryValue]) => queryValue === value,
+  );
+  return (match?.[0] as HealthKey | undefined) ?? null;
+}
+
+export function healthCustomersHref(key: HealthKey) {
+  return `/customers?health=${HEALTH_QUERY_VALUES[key]}`;
+}
+
 function notNewOrFilter(enrolledSince: string) {
   return `registered_at.lt.${enrolledSince},and(registered_at.is.null,created_at.lt.${enrolledSince})`;
+}
+
+export function healthFilterExpression(key: HealthKey, now = new Date()) {
+  const enrolledSince = pacificDateDaysAgoFrom(now, HEALTH_WINDOWS.newDays);
+  const activeSince = pacificDateDaysAgoFrom(now, HEALTH_WINDOWS.activeDays);
+  const lapsingSince = pacificDateDaysAgoFrom(
+    now,
+    HEALTH_WINDOWS.lapsingToDays,
+  );
+  const atRiskSince = pacificDateDaysAgoFrom(
+    now,
+    HEALTH_WINDOWS.atRiskToDays,
+  );
+  const notNew = `or(${notNewOrFilter(enrolledSince)})`;
+
+  switch (key) {
+    case "new":
+      return `registered_at.gte.${enrolledSince},and(registered_at.is.null,created_at.gte.${enrolledSince})`;
+    case "active":
+      return `and(${notNew},last_seen_at.gte.${activeSince})`;
+    case "lapsing":
+      return `and(${notNew},last_seen_at.gte.${lapsingSince},last_seen_at.lt.${activeSince})`;
+    case "atRisk":
+      return `and(${notNew},last_seen_at.gte.${atRiskSince},last_seen_at.lt.${lapsingSince})`;
+    case "inactive":
+      return `and(${notNew},or(last_seen_at.lt.${atRiskSince},last_seen_at.is.null))`;
+  }
 }
 
 async function count(run: CountQuery) {
@@ -84,12 +139,12 @@ function trendPct(current: number, previous: number): number | null {
 export async function fetchCustomerHealth(
   supabase: SupabaseClient,
 ): Promise<CustomerHealthSnapshotData> {
-  const enrolledSince = pacificDateDaysAgo(HEALTH_WINDOWS.newDays);
-  const priorEnrolledFrom = pacificDateDaysAgo(HEALTH_WINDOWS.newDays * 2);
-  const activeSince = pacificDateDaysAgo(HEALTH_WINDOWS.activeDays);
-  const lapsingSince = pacificDateDaysAgo(HEALTH_WINDOWS.lapsingToDays);
-  const atRiskSince = pacificDateDaysAgo(HEALTH_WINDOWS.atRiskToDays);
-  const notNew = notNewOrFilter(enrolledSince);
+  const now = new Date();
+  const enrolledSince = pacificDateDaysAgoFrom(now, HEALTH_WINDOWS.newDays);
+  const priorEnrolledFrom = pacificDateDaysAgoFrom(
+    now,
+    HEALTH_WINDOWS.newDays * 2,
+  );
 
   const customers = () =>
     supabase.from("customers").select("id", { count: "exact", head: true });
@@ -100,34 +155,23 @@ export async function fetchCustomerHealth(
   let active: number;
   let lapsing: number;
   let atRisk: number;
+  let inactive: number;
 
   try {
-    [total, newCount, priorNew, active, lapsing, atRisk] = await Promise.all([
-      count(customers()),
-      count(
-        customers().or(
-          `registered_at.gte.${enrolledSince},and(registered_at.is.null,created_at.gte.${enrolledSince})`
-        )
-      ),
-      count(
-        customers()
-          .lt("registered_at", enrolledSince)
-          .gte("registered_at", priorEnrolledFrom)
-      ),
-      count(customers().gte("last_seen_at", activeSince).or(notNew)),
-      count(
-        customers()
-          .gte("last_seen_at", lapsingSince)
-          .lt("last_seen_at", activeSince)
-          .or(notNew)
-      ),
-      count(
-        customers()
-          .gte("last_seen_at", atRiskSince)
-          .lt("last_seen_at", lapsingSince)
-          .or(notNew)
-      ),
-    ]);
+    [total, newCount, priorNew, active, lapsing, atRisk, inactive] =
+      await Promise.all([
+        count(customers()),
+        count(customers().or(healthFilterExpression("new", now))),
+        count(
+          customers()
+            .lt("registered_at", enrolledSince)
+            .gte("registered_at", priorEnrolledFrom),
+        ),
+        count(customers().or(healthFilterExpression("active", now))),
+        count(customers().or(healthFilterExpression("lapsing", now))),
+        count(customers().or(healthFilterExpression("atRisk", now))),
+        count(customers().or(healthFilterExpression("inactive", now))),
+      ]);
   } catch {
     return {
       total: 0,
@@ -141,13 +185,10 @@ export async function fetchCustomerHealth(
     };
   }
 
-  const classified = newCount + active + lapsing + atRisk;
-  const inactive = Math.max(0, total - classified);
-
   const buckets: HealthBucket[] = [
     {
       key: "new",
-      label: "New",
+      label: HEALTH_LABELS.new,
       count: newCount,
       pctOfTotal: pct(newCount, total),
       trendPct: trendPct(newCount, priorNew),
@@ -156,7 +197,7 @@ export async function fetchCustomerHealth(
     },
     {
       key: "active",
-      label: "Active",
+      label: HEALTH_LABELS.active,
       count: active,
       pctOfTotal: pct(active, total),
       trendPct: null,
@@ -165,7 +206,7 @@ export async function fetchCustomerHealth(
     },
     {
       key: "lapsing",
-      label: "Lapsing",
+      label: HEALTH_LABELS.lapsing,
       count: lapsing,
       pctOfTotal: pct(lapsing, total),
       trendPct: null,
@@ -174,7 +215,7 @@ export async function fetchCustomerHealth(
     },
     {
       key: "atRisk",
-      label: "At-Risk",
+      label: HEALTH_LABELS.atRisk,
       count: atRisk,
       pctOfTotal: pct(atRisk, total),
       trendPct: null,
@@ -183,7 +224,7 @@ export async function fetchCustomerHealth(
     },
     {
       key: "inactive",
-      label: "Inactive",
+      label: HEALTH_LABELS.inactive,
       count: inactive,
       pctOfTotal: pct(inactive, total),
       trendPct: null,

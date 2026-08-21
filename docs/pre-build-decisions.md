@@ -110,7 +110,8 @@ The business rules that turn a Lightspeed sale into ledger rows, and what happen
 **Earn — for Lightspeed integration later (not a kickoff topic)**  
 - **1 point per $1 of purchase** (`floor(cents / 100)` — leftover cents do not earn)  
 - No expiry unless PM later says otherwise  
-- Tax / gift-card / sale-item exclusions still open → until then `eligible_cents` = sale total  
+- First implementation earns on **closed** sales with `eligible_cents = sale total`
+- Tax / gift-card / sale-item exclusions remain open for a later refinement
 
 **Redeem — for Lightspeed integration later**  
 Catalog is two active rewards (not a formula — $10 and $25 are different rates):
@@ -126,12 +127,13 @@ Still open when we build redeem: can both stack on one purchase? Counter-only vs
 Cashier, manager, and owner may adjust a balance. UI looks like an edit; database inserts a `correction` ledger row with `created_by` + reason. Bare tablet device session is **not** enough — staff identity (PIN / login) required, same as redeem.
 
 **Returns / voids / layby**  
-- When Lightspeed refunds, do we insert `return_clawback`?  
-- What if they already spent the points? (negative balance vs block vs manager fix)
+- Insert a `return_clawback` for points earned by the returned/voided sale.
+- Cap the clawback at the customer’s current balance; never take them below zero.
 
 **Sale ↔ customer match**  
-- Counter enters phone, then sale rings — match by **time window** at that store?  
-- Or attach Lightspeed customer to the sale?  
+- Counter phone capture matches the nearest unmatched sale at that store within
+  **±15 minutes**, with one sale consumed by at most one capture.
+- Prefer an existing Lightspeed customer link when the sale already has one.
 - Or cashier-entered amount as fallback when webhook/match fails?
 
 ### Owner
@@ -208,8 +210,8 @@ How the worker receives sales and maps them into `sales` + ledger.
 - Auth to their retailer API (OAuth app vs personal token)  
 - Public HTTPS webhook URL on the worker  
 - Verify signatures if provided  
-- Which sale **statuses** count as “paid / complete”  
-- Ignore voids; handle refunds per PM rules  
+- Only **closed** sales earn.
+- Returns/voids claw back points up to the current balance (never negative).
 - Map each X-Series **outlet** → `stores.id`  
 - CSV has extra locations (Hairway 2 Heaven, Hollywood Beauty) — real stores in program or ignore?  
 - Persist raw webhook payload, then process (resilience)  

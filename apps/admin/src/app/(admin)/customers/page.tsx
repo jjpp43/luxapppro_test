@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { PerPageSelect } from "./PerPageSelect";
 import { PageHeader } from "@/components/ui/PageHeader";
+import {
+  HEALTH_LABELS,
+  HEALTH_QUERY_VALUES,
+  healthFilterExpression,
+  parseHealthQuery,
+  type HealthKey,
+} from "@/lib/customer-health";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ q?: string; store?: string; per?: string; page?: string }>;
+type SearchParams = Promise<{
+  q?: string;
+  store?: string;
+  health?: string;
+  per?: string;
+  page?: string;
+}>;
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 const PAGE_SIZES = [50, 100, 200] as const;
@@ -23,17 +36,20 @@ function parsePage(raw?: string) {
 function customersHref({
   q,
   store,
+  health,
   per,
   page,
 }: {
   q?: string;
   store?: string;
+  health?: HealthKey;
   per?: number;
   page?: number;
 }) {
   const p = new URLSearchParams();
   if (q) p.set("q", q);
   if (store) p.set("store", store);
+  if (health) p.set("health", HEALTH_QUERY_VALUES[health]);
   if (per && per !== 50) p.set("per", String(per));
   if (page && page > 1) p.set("page", String(page));
   const qs = p.toString();
@@ -44,9 +60,19 @@ function displayStoreName(name: string) {
   return name.replace(/^Lux Beauty Supply - /, "").replace(" - ", " – ");
 }
 
-async function countCustomers(supabase: SupabaseClient, storeId?: string) {
+async function countCustomers(
+  supabase: SupabaseClient,
+  {
+    storeId,
+    healthExpression,
+  }: {
+    storeId?: string;
+    healthExpression?: string;
+  } = {},
+) {
   let q = supabase.from("customers").select("id", { count: "exact", head: true });
   if (storeId) q = q.eq("home_store_id", storeId);
+  if (healthExpression) q = q.or(healthExpression);
   const { count, error } = await q;
   if (error) return 0;
   return count ?? 0;
@@ -57,19 +83,39 @@ export default async function CustomersPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { q, store: storeParam, per: perParam, page: pageParam } = await searchParams;
+  const {
+    q,
+    store: storeParam,
+    health: healthParam,
+    per: perParam,
+    page: pageParam,
+  } = await searchParams;
   const query = (q ?? "").trim();
   const selectedStore = (storeParam ?? "").trim();
+  const selectedHealth = parseHealthQuery(healthParam);
+  const healthExpression = selectedHealth
+    ? healthFilterExpression(selectedHealth)
+    : undefined;
   const per = parsePer(perParam);
   const page = parsePage(pageParam);
   const supabase = await createClient();
 
-  const { data: stores } = await supabase.from("stores").select("id, name").order("name");
+  const { data: stores } = await supabase
+    .from("stores")
+    .select("id, name")
+    .order("sort_rank");
   const storeList = stores ?? [];
 
   const [totalCount, storeCounts, customersResult, filteredCount] = await Promise.all([
-    countCustomers(supabase),
-    Promise.all(storeList.map((s) => countCustomers(supabase, s.id))),
+    countCustomers(supabase, { healthExpression }),
+    Promise.all(
+      storeList.map((s) =>
+        countCustomers(supabase, {
+          storeId: s.id,
+          healthExpression,
+        }),
+      ),
+    ),
     (async () => {
       let customersQuery = supabase
         .from("customers")
@@ -82,6 +128,9 @@ export default async function CustomersPage({
       if (selectedStore) {
         customersQuery = customersQuery.eq("home_store_id", selectedStore);
       }
+      if (healthExpression) {
+        customersQuery = customersQuery.or(healthExpression);
+      }
       if (query) {
         customersQuery = customersQuery.or(
           `phone.ilike.%${query}%,name.ilike.%${query}%,email.ilike.%${query}%,legacy_tapmango_id.eq.${query}`
@@ -93,6 +142,7 @@ export default async function CustomersPage({
     (async () => {
       let c = supabase.from("customers").select("id", { count: "exact", head: true });
       if (selectedStore) c = c.eq("home_store_id", selectedStore);
+      if (healthExpression) c = c.or(healthExpression);
       if (query) {
         c = c.or(
           `phone.ilike.%${query}%,name.ilike.%${query}%,email.ilike.%${query}%,legacy_tapmango_id.eq.${query}`
@@ -105,6 +155,9 @@ export default async function CustomersPage({
 
   const { data: customers, error } = customersResult;
   const selectedName = storeList.find((s) => s.id === selectedStore)?.name;
+  const selectedHealthLabel = selectedHealth
+    ? HEALTH_LABELS[selectedHealth]
+    : null;
   const totalPages = Math.max(1, Math.ceil(filteredCount / per));
   const from = filteredCount === 0 ? 0 : (page - 1) * per + 1;
   const to = Math.min(page * per, filteredCount);
@@ -113,6 +166,11 @@ export default async function CustomersPage({
     <div>
       <PageHeader
         title="Customers"
+        subtitle={
+          selectedHealthLabel
+            ? `${selectedHealthLabel} lifecycle group`
+            : "Search and review loyalty customers."
+        }
         crumbs={[
           { label: "Home", href: "/" },
           { label: "Audience", href: "/customers" },
@@ -130,7 +188,11 @@ export default async function CustomersPage({
 
       <div className="mb-4 flex flex-wrap gap-2">
         <FilterChip
-          href={customersHref({ q: query || undefined, per })}
+          href={customersHref({
+            q: query || undefined,
+            health: selectedHealth ?? undefined,
+            per,
+          })}
           label="All"
           count={totalCount}
           active={!selectedStore}
@@ -138,13 +200,40 @@ export default async function CustomersPage({
         {storeList.map((s, i) => (
           <FilterChip
             key={s.id}
-            href={customersHref({ q: query || undefined, store: s.id, per })}
+            href={customersHref({
+              q: query || undefined,
+              store: s.id,
+              health: selectedHealth ?? undefined,
+              per,
+            })}
             label={displayStoreName(s.name)}
             count={storeCounts[i] ?? 0}
             active={selectedStore === s.id}
           />
         ))}
       </div>
+
+      {selectedHealth && selectedHealthLabel ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--info)]/20 bg-[var(--canvas)] px-3.5 py-2.5 text-sm">
+          <span className="text-[var(--ink-soft)]">
+            Showing the{" "}
+            <strong className="font-semibold text-[var(--ink)]">
+              {selectedHealthLabel}
+            </strong>{" "}
+            lifecycle group
+          </span>
+          <Link
+            href={customersHref({
+              q: query || undefined,
+              store: selectedStore || undefined,
+              per,
+            })}
+            className="font-semibold text-[var(--info)] hover:underline"
+          >
+            Clear health filter
+          </Link>
+        </div>
+      ) : null}
 
       <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
@@ -158,10 +247,22 @@ export default async function CustomersPage({
               per={per}
               q={query || undefined}
               store={selectedStore || undefined}
+              health={
+                selectedHealth
+                  ? HEALTH_QUERY_VALUES[selectedHealth]
+                  : undefined
+              }
             />
             <form className="flex gap-2">
               {selectedStore ? (
                 <input type="hidden" name="store" value={selectedStore} />
+              ) : null}
+              {selectedHealth ? (
+                <input
+                  type="hidden"
+                  name="health"
+                  value={HEALTH_QUERY_VALUES[selectedHealth]}
+                />
               ) : null}
               {per !== 50 ? <input type="hidden" name="per" value={per} /> : null}
               <input
@@ -265,6 +366,7 @@ export default async function CustomersPage({
                   href={customersHref({
                     q: query || undefined,
                     store: selectedStore || undefined,
+                    health: selectedHealth ?? undefined,
                     per,
                     page: page - 1,
                   })}
@@ -282,6 +384,7 @@ export default async function CustomersPage({
                   href={customersHref({
                     q: query || undefined,
                     store: selectedStore || undefined,
+                    health: selectedHealth ?? undefined,
                     per,
                     page: page + 1,
                   })}

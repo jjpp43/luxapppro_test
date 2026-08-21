@@ -12,6 +12,7 @@ import {
 } from "@/lib/location-performance";
 
 type SortKey =
+  | "rank"
   | "name"
   | "totalCustomers"
   | "activeRate"
@@ -99,6 +100,8 @@ function sortValue(
   window: LocationWindowDays
 ): number | string {
   switch (key) {
+    case "rank":
+      return row.sortRank;
     case "name":
       return row.name;
     case "totalCustomers":
@@ -116,8 +119,8 @@ function sortValue(
 
 export function LocationPerformance({ data }: { data: LocationPerformanceData }) {
   const [windowDays, setWindowDays] = useState<LocationWindowDays>(90);
-  const [sortKey, setSortKey] = useState<SortKey>("activeRate");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortKey, setSortKey] = useState<SortKey>("rank");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const ranked = useMemo(() => {
     const copy = [...data.rows];
@@ -134,7 +137,12 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
     return copy;
   }, [data.rows, sortKey, sortDir, windowDays]);
 
-  const leader = ranked[0];
+  const leader = useMemo(() => {
+    if (data.rows.length === 0) return undefined;
+    return [...data.rows].sort(
+      (a, b) => activeRatePct(b, windowDays) - activeRatePct(a, windowDays),
+    )[0];
+  }, [data.rows, windowDays]);
   const leaderRate = leader ? activeRatePct(leader, windowDays) : 0;
   const leaderSpend = leader ? avgSpendCents(leader, windowDays) : null;
   const leaderFreq = leader ? visitFrequency(leader, windowDays) : null;
@@ -154,7 +162,7 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
       return;
     }
     setSortKey(key);
-    setSortDir(key === "name" ? "asc" : "desc");
+    setSortDir(key === "name" || key === "rank" ? "asc" : "desc");
   }
 
   return (
@@ -165,7 +173,8 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
             Location Performance
           </h2>
           <p className="mt-0.5 text-sm text-[#6b7280]">
-            Your locations ranked by customer base and engagement health.
+            Rank is a fixed store number. Sort the other columns to compare
+            customer base and engagement health.
             {salesAsOfLabel
               ? ` Spend and frequency use Lightspeed sales as of ${salesAsOfLabel}.`
               : ""}
@@ -201,7 +210,14 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr className="border-b border-[#eef1f4] text-xs text-[#6b7280]">
-              <th className="w-12 py-2.5 pr-2 font-medium">#</th>
+              <th className="w-14 py-2.5 pr-2 font-medium">
+                <SortButton
+                  label="# Rank"
+                  active={sortKey === "rank"}
+                  dir={sortDir}
+                  onClick={() => onSort("rank")}
+                />
+              </th>
               <th className="py-2.5 pr-3 font-medium">
                 <SortButton
                   label="Location"
@@ -231,13 +247,15 @@ export function LocationPerformance({ data }: { data: LocationPerformanceData })
             </tr>
           </thead>
           <tbody>
-            {ranked.map((row, i) => {
+            {ranked.map((row) => {
               const rate = activeRatePct(row, windowDays);
               const spend = avgSpendCents(row, windowDays);
               const freq = visitFrequency(row, windowDays);
               return (
                 <tr key={row.id} className="border-b border-[#eef1f4] last:border-b-0">
-                  <td className="py-3 pr-2 font-medium text-[#9aa3ad]">#{i + 1}</td>
+                  <td className="py-3 pr-2 font-medium text-[#9aa3ad]">
+                    #{row.sortRank}
+                  </td>
                   <td className="py-3 pr-3 font-medium text-[#111827]">
                     {displayName(row.name)}
                   </td>

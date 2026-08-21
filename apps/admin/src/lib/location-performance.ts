@@ -10,6 +10,7 @@ export type LocationWindowDays = 30 | 90;
 export type LocationPerformanceRow = {
   id: string;
   name: string;
+  sortRank: number;
   totalCustomers: number;
   visited30: number;
   visited90: number;
@@ -98,9 +99,9 @@ export async function fetchLocationPerformance(
 
   const { data: stores, error } = await supabase
     .from("stores")
-    .select("id, name")
+    .select("id, name, sort_rank")
     .eq("active", true)
-    .order("name");
+    .order("sort_rank");
 
   if (error || !stores?.length) {
     return { rows: [], salesAsOf: null };
@@ -149,6 +150,7 @@ export async function fetchLocationPerformance(
       return {
         id: store.id,
         name: store.name,
+        sortRank: Number(store.sort_rank),
         totalCustomers,
         visited30,
         visited90,

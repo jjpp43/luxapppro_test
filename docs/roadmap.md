@@ -32,12 +32,15 @@ Scripts: `scripts/import_lightspeed_sales.py`, `scripts/match_lightspeed_custome
 - Stack: Supabase + Next admin + Expo + worker; apps talk to Supabase; worker for Lightspeed webhooks
 - Points ledger; balance = sum(delta); ledger writes RPC-only
 - Earn: 1 pt per $1 (`floor`); no expiry unless PM later
+- First earn slice: closed sales; `eligible_cents = total_cents` until exclusions change
+- Returns/voids: claw back earned points without taking the balance below zero
 - Rewards: 250 pts = $10 off; 500 pts = $25 off
 - Phone = identity (E.164); signup is phone-only
 - RLS matrix locked; tablet = device session + staff PIN for redeem/correct
 - Corrections: cashier + manager + owner (staff identity, not bare device)
 - PITR after pilot
 - Personal token for Decatur (read-only GET by convention)
+- WALKIN attribution: nearest unmatched sale at the same store within ±15 minutes
 
 ### TapMango pulse math (for when visit cards go live)
 
@@ -114,7 +117,7 @@ In the loyalty program or ignore? PM.
 | 0.8 | Foundation | customers.auth_user_id; staff.auth_user_id | Done | You |
 | 0.9 | Foundation | Remove staging anon SELECT/UPDATE policies before real users | Done | You |
 | 1.1 | PM rules | Earn exclusions: tax, gift cards, other line types — or “same as TapMango” | Open | PM |
-| 1.2 | PM rules | Returns/voids/layby: claw back points? What if already redeemed? | Open | PM |
+| 1.2 | PM rules | Returns/voids/layby: claw back points? What if already redeemed? | Done — claw back, cap balance at zero | PM |
 | 1.3 | PM rules | Reward stacking; redeem counter-only vs in-app | Open | PM |
 | 1.4 | PM rules | How $10/$25 off is applied at register (Lightspeed write vs cashier vs loyalty-only) | Open | PM (You flag write-path cost) |
 | 1.5 | PM rules | Hairway 2 Heaven + Hollywood Beauty in program or ignore? | Open | PM |
@@ -126,7 +129,7 @@ In the loyalty program or ignore? PM.
 | 1.11 | PM rules | Referral anti-abuse for v1 | Deferred | Both |
 | 1.12 | PM rules | Confirm tablet device + PIN at the counter | Open | Both |
 | 1.13 | PM rules | Dual tablet: one app / two modes vs two apps | Open | Both |
-| 1.14 | PM rules | “Good enough” WALKIN / phone-to-sale match | Open | Both |
+| 1.14 | PM rules | “Good enough” WALKIN / phone-to-sale match | Done — nearest unmatched same-store sale within ±15 min | Both |
 | 1.15 | PM rules | Customer app: OTP vs PIN vs no app login (see Discussed) | Open | Both |
 | 2.1 | Auth | Agree auth-wiring.md | Done | Both |
 | 2.2 | Auth | Customer phone OTP ↔ customers (if 1.15 says OTP) | Not started | You |
@@ -154,7 +157,7 @@ In the loyalty program or ignore? PM.
 | 3.9 | Lightspeed | Personal token vs OAuth app for production | Open | You recommend; client credentials |
 | 3.10 | Lightspeed | Worker: HTTPS, sale.update, signature, persist raw, upsert sale id | Not started | You |
 | 3.11 | Lightspeed | Host worker (Fly vs Railway, US West) | Not started | You pick; PM account |
-| 3.12 | Lightspeed | Which sale states earn | Not started | You (from 1.2) |
+| 3.12 | Lightspeed | Which sale states earn | Done — closed sales only | You (from 1.2) |
 | 3.13 | Lightspeed | WALKIN attribution (tablet phone + window) | Not started | You (from 1.14) |
 | 3.14 | Lightspeed | Cashier-entered total as degraded fallback | Not started | You |
 | 3.15 | Lightspeed | Update last_seen_at from matched sales | Not started | You |
@@ -164,13 +167,13 @@ In the loyalty program or ignore? PM.
 | 4.3 | Loyalty | Seed two discount rewards | Not started | You |
 | 4.4 | Loyalty | Redeem RPC + redemptions | Not started | You |
 | 4.5 | Loyalty | correct_balance | Not started | You |
-| 4.6 | Loyalty | Return clawback | Blocked on 1.2 | You |
+| 4.6 | Loyalty | Return clawback capped at zero | Not started | You |
 | 4.7 | Loyalty | Admin rewards + ledger screens | Not started | You |
 | 4.8 | Loyalty | Admin POS transactions from sales | Not started | You |
 | 5.1 | Admin | Health snapshot + Decatur location spend/frequency | Partial | You |
 | 5.2 | Admin | Business Pulse Total Customers | Done | You |
 | 5.3 | Admin | Business Pulse Engaged / spend / visit rate (chain) | Waiting on 3.7 | You |
-| 5.4 | Admin | Groups page: health segments + See Customers filter | Not started | You |
+| 5.4 | Admin | Groups page: health segments + See Customers filter | Done | You |
 | 5.5 | Admin | Users UI wired to staff | Done | You |
 | 5.6 | Admin | Devices admin | Stub | You |
 | 5.7 | Admin | Stores mapping UI | Read-only | You |

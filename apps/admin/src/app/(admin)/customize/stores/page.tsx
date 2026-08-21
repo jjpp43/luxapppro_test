@@ -7,8 +7,8 @@ export default async function StoresPage() {
   const supabase = await createClient();
   const { data: stores, error } = await supabase
     .from("stores")
-    .select("id, name, lightspeed_outlet_id, active, created_at")
-    .order("name");
+    .select("id, name, sort_rank, lightspeed_outlet_id, active, created_at")
+    .order("sort_rank");
 
   return (
     <div>
@@ -31,6 +31,7 @@ export default async function StoresPage() {
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--canvas)] text-xs uppercase tracking-wide text-[var(--muted)]">
             <tr>
+              <th className="px-4 py-2.5 font-medium">#</th>
               <th className="px-4 py-2.5 font-medium">Name</th>
               <th className="px-4 py-2.5 font-medium">Lightspeed outlet</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
@@ -39,6 +40,9 @@ export default async function StoresPage() {
           <tbody>
             {(stores ?? []).map((s) => (
               <tr key={s.id} className="border-t border-[var(--border)]">
+                <td className="px-4 py-3 tabular-nums text-[var(--muted)]">
+                  #{s.sort_rank}
+                </td>
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-[var(--muted)]">
                   {s.lightspeed_outlet_id || "—"}

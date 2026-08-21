@@ -9,10 +9,12 @@ export function PerPageSelect({
   per,
   q,
   store,
+  health,
 }: {
   per: number;
   q?: string;
   store?: string;
+  health?: string;
 }) {
   const router = useRouter();
 
@@ -20,6 +22,7 @@ export function PerPageSelect({
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (store) p.set("store", store);
+    if (health) p.set("health", health);
     if (value !== "50") p.set("per", value);
     const qs = p.toString();
     router.push(qs ? `/customers?${qs}` : "/customers");
