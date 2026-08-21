@@ -12,6 +12,10 @@ apps/admin/node_modules/
 apps/admin/.env
 apps/admin/.env.*
 !apps/admin/.env.example
+apps/worker/node_modules/
+apps/worker/.env
+apps/worker/.env.*
+!apps/worker/.env.example
 scripts/sql_batches/*.len
 scripts/sql_batches/*_out.txt
 scripts/_sample_batches.json

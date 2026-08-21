@@ -7,6 +7,7 @@ Loyalty platform for Las Vegas beauty supply (leaving TapMango).
 | Path | Purpose |
 |---|---|
 | `apps/admin` | Next.js staging admin — verify sample import |
+| `apps/worker` | Lightspeed webhook receiver (not deployed; webhooks and earn off) |
 | `docs/` | Architecture, schema, RLS |
 | `supabase/migrations/` | Schema applied to `luxproapp_test` |
 | `data/tapmango/` | Sample CSV (gitignored, PII) |
@@ -21,3 +22,5 @@ npm run dev
 ```
 
 Expect overview: **196,493** customers · **6** stores · **20,100,952** opening points.
+
+Live earn is **off** on every store (`stores.loyalty_earn_enabled = false`). Do not flip that flag until a pilot store is chosen. Import with `--enable-earn` still no-ops until then.

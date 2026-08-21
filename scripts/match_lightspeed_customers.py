@@ -281,6 +281,19 @@ def main() -> None:
     print(f"applied customer links attempted={len(matches)} sales_groups_patched={sales_updated}")
     print("final stats:", dict(stats))
 
+    try:
+        req3 = urllib.request.Request(
+            f"{supabase_url.rstrip('/')}/rest/v1/rpc/backfill_last_seen_from_sales",
+            data=b"{}",
+            method="POST",
+            headers={**sb_headers, "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req3, timeout=180) as resp:
+            print(f"last_seen backfill updated={resp.read().decode() or 0}")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode(errors="replace")[:400]
+        print(f"last_seen backfill skipped: HTTP {exc.code} {body}")
+
 
 if __name__ == "__main__":
     main()

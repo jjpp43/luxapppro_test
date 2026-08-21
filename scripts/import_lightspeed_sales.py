@@ -147,6 +147,7 @@ def supabase_upsert(
     rows: list[dict[str, Any]],
     dry_run: bool,
     chunk_size: int = 100,
+    enable_earn: bool = False,
 ) -> None:
     if not rows:
         return
@@ -209,6 +210,25 @@ def supabase_upsert(
             body = exc.read().decode(errors="replace")[:800]
             raise SystemExit(f"Supabase upsert failed HTTP {exc.code}\n{body}") from exc
 
+        if enable_earn:
+            ids = [row["lightspeed_sale_id"] for row in chunk if row.get("lightspeed_sale_id")]
+            if ids:
+                rpc = urllib.request.Request(
+                    f"{supabase_url.rstrip('/')}/rest/v1/rpc/process_sales_loyalty",
+                    data=json.dumps({"p_lightspeed_sale_ids": ids}).encode(),
+                    method="POST",
+                    headers=supabase_headers(
+                        supabase_key,
+                        {"Content-Type": "application/json"},
+                    ),
+                )
+                try:
+                    with urllib.request.urlopen(rpc, timeout=180) as resp:
+                        resp.read()
+                except urllib.error.HTTPError as exc:
+                    body = exc.read().decode(errors="replace")[:800]
+                    raise SystemExit(f"process_sales_loyalty failed HTTP {exc.code}\n{body}") from exc
+
 
 def parse_ymd(value: str) -> date:
     return date.fromisoformat(value)
@@ -270,6 +290,7 @@ def import_by_search(
     outlet_to_store: dict[str, str],
     page_size: int,
     dry_run: bool,
+    enable_earn: bool = False,
 ) -> None:
     print(f"search window: {date_from} → {date_to} (end exclusive)")
     offset = 0
@@ -306,7 +327,13 @@ def import_by_search(
             f"page {page}: offset={offset} fetched={len(sales)} kept={len(mapped)} "
             f"total_count={total_count}"
         )
-        supabase_upsert(supabase_url, supabase_key, mapped, dry_run)
+        supabase_upsert(
+            supabase_url,
+            supabase_key,
+            mapped,
+            dry_run,
+            enable_earn=enable_earn,
+        )
 
         if not sales:
             break
@@ -331,6 +358,7 @@ def import_by_version(
     page_size: int,
     max_pages: int,
     dry_run: bool,
+    enable_earn: bool = False,
 ) -> None:
     after: int | None = None
     total_seen = 0
@@ -358,7 +386,13 @@ def import_by_version(
             f"page {page}: fetched={len(sales)} kept={len(mapped)} "
             f"version.max={vmax}"
         )
-        supabase_upsert(supabase_url, supabase_key, mapped, dry_run)
+        supabase_upsert(
+            supabase_url,
+            supabase_key,
+            mapped,
+            dry_run,
+            enable_earn=enable_earn,
+        )
 
         if not sales or vmax is None:
             print("done: no more pages")
@@ -388,6 +422,11 @@ def main() -> None:
     )
     parser.add_argument("--date-from", help="Inclusive start YYYY-MM-DD (UTC midnight)")
     parser.add_argument("--date-to", help="Inclusive end YYYY-MM-DD")
+    parser.add_argument(
+        "--enable-earn",
+        action="store_true",
+        help="After upsert, call process_sale_loyalty. Store flags still default off.",
+    )
     args = parser.parse_args()
     keep_states = {s.strip() for s in args.states.split(",") if s.strip()}
 
@@ -437,6 +476,7 @@ def main() -> None:
             outlet_to_store=outlet_to_store,
             page_size=min(page_size, 1000),
             dry_run=args.dry_run,
+            enable_earn=args.enable_earn,
         )
     else:
         import_by_version(
@@ -449,6 +489,7 @@ def main() -> None:
             page_size=args.page_size,
             max_pages=args.max_pages,
             dry_run=args.dry_run,
+            enable_earn=args.enable_earn,
         )
 
 

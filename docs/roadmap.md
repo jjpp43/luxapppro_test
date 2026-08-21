@@ -19,8 +19,8 @@ Staging project `luxproapp_test` (`lgesaomtqisfvzcllusy`, us-west-2). Admin: `ap
 | Location Performance | Counts live; Decatur spend/frequency when sales exist; other stores — |
 | Lightspeed Decatur | Mapped: `luxbeauty4` → outlet Main Outlet → **Lux Beauty Supply - Decatur** |
 | Decatur sales | Closed sales **2026-05-22 → 2026-08-19** (~15,890 in that window). Older Mar–Jun 2025 slice also in `sales` |
-| Customer match | Partial — phone match LS → Lux; most tickets still WALKIN |
-| Earn / redeem / worker / Expo | Not started |
+| Customer match | Partial — phone match LS → Lux; unidentified WALKIN tickets do not earn |
+| Earn / redeem / worker / Expo | Earn RPC exists, **gated off**; redeem / Expo not started |
 | Admin staff Auth | Activated on staging; first owner invited and linked; password setup pending |
 
 Scripts: `scripts/import_lightspeed_sales.py`, `scripts/match_lightspeed_customers.py`.
@@ -60,7 +60,7 @@ Scripts: `scripts/import_lightspeed_sales.py`, `scripts/match_lightspeed_custome
 
 **Required for:** Chain-wide Engaged / spend / visit rate; Location Performance spend/frequency for Craig, East Twain, West Sahara (and Hairway / Hollywood if in program); POS-based `last_seen_at` for shoppers who never visit Decatur.
 
-Health “last visit” stays on TapMango check-in until we backfill `last_seen_at` from Lightspeed.
+Health “last visit” stays on TapMango check-in until we backfill `last_seen_at` from identified Lightspeed sales. Anonymous WALKIN tickets do not earn and do not move last visit.
 
 ---
 
@@ -70,7 +70,7 @@ Health “last visit” stays on TapMango check-in until we backfill `last_seen_
 Skip SMS at the **counter** (wrong number = customer/staff fault). **Customer app login** without OTP means anyone who types a phone can open that account. Options: OTP on the app only; PIN/password at enrol; or no app login until later. Not decided.
 
 **WALKIN (~most Decatur tickets)**
-Need tablet phone + time window / cashier attach. Behavior = “good enough” with PM.
+No phone → no points. A phone at the counter (Lightspeed customer or typed later) is the only earn path. Anonymous tickets are stored for POS lists only.
 
 **Hairway 2 Heaven / Hollywood Beauty**
 In the loyalty program or ignore? PM.
@@ -139,7 +139,7 @@ In the loyalty program or ignore? PM.
 | 2.6 | Auth | Tablet elevate: PIN / staff login for redeem + correct | Not started | You |
 | 2.7 | Auth | RLS helpers | Done (device helpers deny until 2.5) | You |
 | 2.8 | Auth | Real RLS + revoke ledger writes from clients | Done (staging) | You |
-| 2.9 | Auth | RPCs: enrol, redeem, correct_balance, award | Not started | You |
+| 2.9 | Auth | RPCs: enrol, redeem, correct_balance, award | Partial — `enrol_customer` + gated `process_sale_loyalty` | You |
 | 2.10 | Auth | Policy tests (allow + deny) | Partial — owner allow + unlinked deny pass; customer/device cases follow those auth flows | You |
 | 2.11 | Auth | Twilio A2P in client’s name (only if app OTP) | Open | PM / client |
 | 2.12 | Auth | Apple + Play + privacy policy in client’s name | Not started | PM / client |
@@ -155,21 +155,21 @@ In the loyalty program or ignore? PM.
 | 3.7 | Lightspeed | Tokens for Craig, East Twain, West Sahara | Not started | PM / client; You map |
 | 3.8 | Lightspeed | Hairway / Hollywood if 1.5 says in | Blocked on 1.5 | You after PM |
 | 3.9 | Lightspeed | Personal token vs OAuth app for production | Open | You recommend; client credentials |
-| 3.10 | Lightspeed | Worker: HTTPS, sale.update, signature, persist raw, upsert sale id | Not started | You |
+| 3.10 | Lightspeed | Worker: HTTPS, sale.update, signature, persist raw, upsert sale id | Partial — scaffold, not deployed | You |
 | 3.11 | Lightspeed | Host worker (Fly vs Railway, US West) | Not started | You pick; PM account |
 | 3.12 | Lightspeed | Which sale states earn | Done — closed sales only | You (from 1.2) |
-| 3.13 | Lightspeed | WALKIN attribution (tablet phone + window) | Not started | You (from 1.14) |
+| 3.13 | Lightspeed | WALKIN attribution (tablet phone + window) | Deferred — no phone, no points | You (from 1.14) |
 | 3.14 | Lightspeed | Cashier-entered total as degraded fallback | Not started | You |
-| 3.15 | Lightspeed | Update last_seen_at from matched sales | Not started | You |
+| 3.15 | Lightspeed | Update last_seen_at from matched sales | Done — RPC + backfill script; earn stays off | You |
 | 3.16 | Lightspeed | Enable webhooks on retailer | Not started | PM / client |
-| 4.1 | Loyalty | eligible_cents from 1.1 (until then = sale total) | Not started | You |
-| 4.2 | Loyalty | Earn ledger row, idempotent on sale | Not started | You |
-| 4.3 | Loyalty | Seed two discount rewards | Not started | You |
+| 4.1 | Loyalty | eligible_cents from 1.1 (until then = sale total) | Done for v1 — equals sale total | You |
+| 4.2 | Loyalty | Earn ledger row, idempotent on sale | Done — gated by `loyalty_earn_enabled` | You |
+| 4.3 | Loyalty | Seed two discount rewards | Done | You |
 | 4.4 | Loyalty | Redeem RPC + redemptions | Not started | You |
 | 4.5 | Loyalty | correct_balance | Not started | You |
-| 4.6 | Loyalty | Return clawback capped at zero | Not started | You |
-| 4.7 | Loyalty | Admin rewards + ledger screens | Not started | You |
-| 4.8 | Loyalty | Admin POS transactions from sales | Not started | You |
+| 4.6 | Loyalty | Return clawback capped at zero | Done — gated with earn | You |
+| 4.7 | Loyalty | Admin rewards + ledger screens | Partial — ledger live; rewards catalog already seeded | You |
+| 4.8 | Loyalty | Admin POS transactions from sales | Done | You |
 | 5.1 | Admin | Health snapshot + Decatur location spend/frequency | Partial | You |
 | 5.2 | Admin | Business Pulse Total Customers | Done | You |
 | 5.3 | Admin | Business Pulse Engaged / spend / visit rate (chain) | Waiting on 3.7 | You |
