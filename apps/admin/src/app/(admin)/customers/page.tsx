@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { PerPageSelect } from "./PerPageSelect";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ q?: string; store?: string; per?: string; page?: string }>;
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 const PAGE_SIZES = [50, 100, 200] as const;
 
@@ -43,7 +44,7 @@ function displayStoreName(name: string) {
   return name.replace(/^Lux Beauty Supply - /, "").replace(" - ", " – ");
 }
 
-async function countCustomers(storeId?: string) {
+async function countCustomers(supabase: SupabaseClient, storeId?: string) {
   let q = supabase.from("customers").select("id", { count: "exact", head: true });
   if (storeId) q = q.eq("home_store_id", storeId);
   const { count, error } = await q;
@@ -61,13 +62,14 @@ export default async function CustomersPage({
   const selectedStore = (storeParam ?? "").trim();
   const per = parsePer(perParam);
   const page = parsePage(pageParam);
+  const supabase = await createClient();
 
   const { data: stores } = await supabase.from("stores").select("id, name").order("name");
   const storeList = stores ?? [];
 
   const [totalCount, storeCounts, customersResult, filteredCount] = await Promise.all([
-    countCustomers(),
-    Promise.all(storeList.map((s) => countCustomers(s.id))),
+    countCustomers(supabase),
+    Promise.all(storeList.map((s) => countCustomers(supabase, s.id))),
     (async () => {
       let customersQuery = supabase
         .from("customers")

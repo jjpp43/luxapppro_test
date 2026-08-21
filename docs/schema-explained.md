@@ -8,7 +8,7 @@ Companion to `schema-stackrender.sql`. How the tables fit together and why they 
 
 | Group | Tables | Purpose |
 |---|---|---|
-| **1. Organization** | `stores`, `staff` | Outlets and people who run admin/tablet |
+| **1. Organization** | `stores`, `staff`, `devices` | Outlets, staff, and provisioned tablet records |
 | **2. Customers** | `customers` | Loyalty members (phone = identity) |
 | **3. Commerce** | `sales` | Lightspeed X sales mirrored in |
 | **4. Loyalty** | `rewards`, `points_ledger`, `redemptions` | Catalog, point history, spends |
@@ -18,6 +18,7 @@ Companion to `schema-stackrender.sql`. How the tables fit together and why they 
 1. Organization          2. Customers           3. Commerce
    stores                   customers              sales
    staff                       │                     │
+   devices                     │                     │
        │                       │                     │
        └───────────────────────┴─────────────────────┘
                                │
@@ -77,6 +78,12 @@ People who use the **admin dashboard** or take sensitive tablet actions.
 
 Without this table, you cannot answer “who fixed this customer’s points?”
 
+### `devices`
+
+Registry of tablets provisioned to a store. Authentication credentials are deliberately
+deferred until auth wiring; this table currently owns the store, label, active state,
+and last-seen timestamp only.
+
 ---
 
 ## 2. Customers
@@ -132,8 +139,10 @@ These are two catalog rows, not a formula — the dollar value per point is not 
 
 | Column | Role |
 |---|---|
+| `code` | Stable unique identifier used by application code |
 | `cost_points` | How many points to spend |
 | `kind` | fixed_discount / percent / free_item |
+| `value_cents`, `value_percent`, `item_reference` | Exactly one value shape, enforced from `kind` |
 | `active` | Soft on/off without deleting history |
 
 ### `points_ledger` (the important one)
@@ -215,7 +224,7 @@ Short-lived codes behind the rotating QR.
 | Column | Role |
 |---|---|
 | `partner_id` | Whose code |
-| `token` | Opaque random string (unique) |
+| `token_hash` | Hash of the opaque random string; the raw QR token is returned once and not stored |
 | `expires_at` | Server-side expiry (e.g. ~60s) |
 | `consumed_at` | Set on first successful use — single-use |
 
@@ -252,6 +261,6 @@ Still product decisions (columns may grow):
 - Whether returns always write `return_clawback` ledger rows
 - Referral economics — beautician payout, customer reward, min basket, pending TTL, return hold, cooling-off, last-touch (**deferred; discuss later**)
 - Beautician payout = same points currency vs separate wallet (today: referral $ on `referrals`, customer points on ledger)
-- Device/tablet registry
+- Device authentication credentials and provisioning flow (the registry table now exists)
 
 Those don’t remove the need for these core tables; they add detail on top.

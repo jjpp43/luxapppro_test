@@ -1,6 +1,6 @@
 # Roadmap and working notes
 
-**Updated:** 2026-08-20  
+**Updated:** 2026-08-20
 **Purpose:** Snapshot of progress, decisions from build conversations, and the remaining work. Complements [`pre-build-decisions.md`](./pre-build-decisions.md), [`auth-wiring.md`](./auth-wiring.md), and [`rls-matrix.md`](./rls-matrix.md).
 
 ---
@@ -11,7 +11,7 @@ Staging project `luxproapp_test` (`lgesaomtqisfvzcllusy`, us-west-2). Admin: `ap
 
 | Area | Status |
 |---|---|
-| Architecture / schema / RLS matrix docs | Done (RLS SQL not written — hold until auth wiring agreed) |
+| Architecture / schema / RLS | Done — authenticated policies live on staging; device capabilities deny-by-default until 2.5 |
 | TapMango import | Done — 196,493 customers, 180,453 opening ledger rows, 97 quarantined |
 | Admin shell (TapMango IA) | Done — many nav items still stubs |
 | Dashboard health snapshot | Live from `registered_at` / TapMango `last_seen_at` |
@@ -20,7 +20,8 @@ Staging project `luxproapp_test` (`lgesaomtqisfvzcllusy`, us-west-2). Admin: `ap
 | Lightspeed Decatur | Mapped: `luxbeauty4` → outlet Main Outlet → **Lux Beauty Supply - Decatur** |
 | Decatur sales | Closed sales **2026-05-22 → 2026-08-19** (~15,890 in that window). Older Mar–Jun 2025 slice also in `sales` |
 | Customer match | Partial — phone match LS → Lux; most tickets still WALKIN |
-| Earn / redeem / worker / Auth / RLS / Expo | Not started |
+| Earn / redeem / worker / Expo | Not started |
+| Admin staff Auth | Activated on staging; first owner invited and linked; password setup pending |
 
 Scripts: `scripts/import_lightspeed_sales.py`, `scripts/match_lightspeed_customers.py`.
 
@@ -62,26 +63,26 @@ Health “last visit” stays on TapMango check-in until we backfill `last_seen_
 
 ## Discussed, not locked
 
-**Phone OTP / Twilio**  
+**Phone OTP / Twilio**
 Skip SMS at the **counter** (wrong number = customer/staff fault). **Customer app login** without OTP means anyone who types a phone can open that account. Options: OTP on the app only; PIN/password at enrol; or no app login until later. Not decided.
 
-**WALKIN (~most Decatur tickets)**  
+**WALKIN (~most Decatur tickets)**
 Need tablet phone + time window / cashier attach. Behavior = “good enough” with PM.
 
-**Hairway 2 Heaven / Hollywood Beauty**  
+**Hairway 2 Heaven / Hollywood Beauty**
 In the loyalty program or ignore? PM.
 
 ---
 
 ## Suggested build order
 
-1. PM packet: exclusions, returns, locations in scope, other store logins, tablet PIN, match window, pilot store  
-2. Auth wiring agreed → leftover tables + RLS helpers (no junior writes until then)  
-3. Groups screen + customers `?health=` filter (no other POS)  
-4. WALKIN match + `last_seen_at` from Decatur sales + earn worker on matched Decatur sales  
-5. Redeem + two rewards + staff/tablet  
-6. Cutover: TapMango delta, per-store reconcile, ~5-day single-store pilot  
-7. Other stores’ Lightspeed → chain pulse + remaining location rows  
+1. PM packet: exclusions, returns, locations in scope, other store logins, tablet PIN, match window, pilot store
+2. First owner accepts invitation and sets password (env, bootstrap, and RLS are live)
+3. Groups screen + customers `?health=` filter (no other POS)
+4. WALKIN match + `last_seen_at` from Decatur sales + earn worker on matched Decatur sales
+5. Redeem + two rewards + staff/tablet
+6. Cutover: TapMango delta, per-store reconcile, ~5-day single-store pilot
+7. Other stores’ Lightspeed → chain pulse + remaining location rows
 8. Referral economics, campaigns/SMS, PITR — after the above
 
 **Unblocked without other stores:** schema leftovers, auth/RLS, Decatur match/earn/webhook, rewards/redeem, admin Groups/Users/ledger/POS list, Expo apps, ops (backups, Sentry, runbooks).
@@ -108,10 +109,10 @@ In the loyalty program or ignore? PM.
 | 0.3 | Foundation | Core tables: stores, customers, points_ledger, sales | Done | You |
 | 0.4 | Foundation | TapMango import (~196k customers, ~180k opening ledger, 97 quarantined) | Done | You |
 | 0.5 | Foundation | Admin shell + customers list/detail + dashboard (partial live data) | Done | You |
-| 0.6 | Foundation | Remaining v1 tables: staff, devices, rewards, redemptions, referral_partners, referrals | Not started | You |
-| 0.7 | Foundation | customer_balance view; ledger append-only trigger; earn idempotency_key | Not started | You |
-| 0.8 | Foundation | customers.auth_user_id; staff.auth_user_id | Not started | You |
-| 0.9 | Foundation | Remove staging anon SELECT/UPDATE policies before real users | Not started (blocked by 2.x) | You |
+| 0.6 | Foundation | Remaining v1 tables: staff, devices, rewards, redemptions, referral_partners, referrals (+ referral_tokens) | Done | You |
+| 0.7 | Foundation | customer_balance view; ledger append-only trigger; earn idempotency_key | Done | You |
+| 0.8 | Foundation | customers.auth_user_id; staff.auth_user_id | Done | You |
+| 0.9 | Foundation | Remove staging anon SELECT/UPDATE policies before real users | Done | You |
 | 1.1 | PM rules | Earn exclusions: tax, gift cards, other line types — or “same as TapMango” | Open | PM |
 | 1.2 | PM rules | Returns/voids/layby: claw back points? What if already redeemed? | Open | PM |
 | 1.3 | PM rules | Reward stacking; redeem counter-only vs in-app | Open | PM |
@@ -127,21 +128,21 @@ In the loyalty program or ignore? PM.
 | 1.13 | PM rules | Dual tablet: one app / two modes vs two apps | Open | Both |
 | 1.14 | PM rules | “Good enough” WALKIN / phone-to-sale match | Open | Both |
 | 1.15 | PM rules | Customer app: OTP vs PIN vs no app login (see Discussed) | Open | Both |
-| 2.1 | Auth | Agree auth-wiring.md | Not started | Both |
+| 2.1 | Auth | Agree auth-wiring.md | Done | Both |
 | 2.2 | Auth | Customer phone OTP ↔ customers (if 1.15 says OTP) | Not started | You |
-| 2.3 | Auth | Admin email/password ↔ staff; owner invites; no self-escalate | Not started | You |
+| 2.3 | Auth | Admin email/password ↔ staff; owner invites; no self-escalate | Done (owner invited; acceptance pending) | You |
 | 2.4 | Auth | Partner mode: same Auth user + referral_partners | Not started | You |
 | 2.5 | Auth | Device provisioning | Not started | You (PM confirms ops) |
 | 2.6 | Auth | Tablet elevate: PIN / staff login for redeem + correct | Not started | You |
-| 2.7 | Auth | RLS helpers | Not started | You |
-| 2.8 | Auth | Real RLS + revoke ledger writes from clients | Not started | You |
+| 2.7 | Auth | RLS helpers | Done (device helpers deny until 2.5) | You |
+| 2.8 | Auth | Real RLS + revoke ledger writes from clients | Done (staging) | You |
 | 2.9 | Auth | RPCs: enrol, redeem, correct_balance, award | Not started | You |
-| 2.10 | Auth | Policy tests (allow + deny) | Not started | You |
+| 2.10 | Auth | Policy tests (allow + deny) | Partial — owner allow + unlinked deny pass; customer/device cases follow those auth flows | You |
 | 2.11 | Auth | Twilio A2P in client’s name (only if app OTP) | Open | PM / client |
 | 2.12 | Auth | Apple + Play + privacy policy in client’s name | Not started | PM / client |
 | 2.13 | Auth | Phone merge procedure | Not started | You |
-| 2.14 | Auth | Never ship service_role to admin or Expo | Ongoing | You |
-| 2.15 | Auth | Hold: no junior Supabase writes / no prod RLS SQL until 2.1 | Ongoing | You |
+| 2.14 | Auth | Never ship service_role to browser or Expo; trusted server code only | Ongoing | You |
+| 2.15 | Auth | Keep writes disabled for any surface until its auth flow and policies exist | Ongoing | You |
 | 3.1 | Lightspeed | Decatur mapped (luxbeauty4 → Main Outlet) | Done | You + client |
 | 3.2 | Lightspeed | Sales import script (date search + upsert) | Done | You |
 | 3.3 | Lightspeed | Decatur last 30 days (through 2026-08-16) | Done | You |
@@ -170,11 +171,11 @@ In the loyalty program or ignore? PM.
 | 5.2 | Admin | Business Pulse Total Customers | Done | You |
 | 5.3 | Admin | Business Pulse Engaged / spend / visit rate (chain) | Waiting on 3.7 | You |
 | 5.4 | Admin | Groups page: health segments + See Customers filter | Not started | You |
-| 5.5 | Admin | Users UI wired to staff | Stub | You |
+| 5.5 | Admin | Users UI wired to staff | Done | You |
 | 5.6 | Admin | Devices admin | Stub | You |
 | 5.7 | Admin | Stores mapping UI | Read-only | You |
 | 5.8 | Admin | Campaigns / SMS / memberships / branding / reports | Out of v1 unless PM wants | You if asked |
-| 5.9 | Admin | Real admin login (after 2.3) | Not started | You |
+| 5.9 | Admin | Real admin login (after 2.3) | Done (owner password setup pending) | You |
 | 6.1 | Apps | Monorepo: customer, tablet, worker, shared client, CI | Not started | You |
 | 6.2 | Apps | Customer app | Not started | You (junior after 2.1) |
 | 6.3 | Apps | Tablet: lookup, enrol, attach sale, redeem, correct | Not started | You |
@@ -201,9 +202,9 @@ In the loyalty program or ignore? PM.
 
 ## Related docs
 
-- [`background.md`](./background.md) — client and product intent  
-- [`pre-build-decisions.md`](./pre-build-decisions.md) — owners and open PM questions  
-- [`rls-matrix.md`](./rls-matrix.md) — locked permissions  
-- [`auth-wiring.md`](./auth-wiring.md) — next gate before policy SQL  
-- [`staging-sample.md`](./staging-sample.md) — import counts  
-- [`schema-explained.md`](./schema-explained.md) — tables  
+- [`background.md`](./background.md) — client and product intent
+- [`pre-build-decisions.md`](./pre-build-decisions.md) — owners and open PM questions
+- [`rls-matrix.md`](./rls-matrix.md) — locked permissions
+- [`auth-wiring.md`](./auth-wiring.md) — next gate before policy SQL
+- [`staging-sample.md`](./staging-sample.md) — import counts
+- [`schema-explained.md`](./schema-explained.md) — tables

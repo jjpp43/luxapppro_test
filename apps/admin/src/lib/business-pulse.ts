@@ -1,5 +1,7 @@
 import { pacificDateDaysAgoFrom } from "@/lib/customer-health";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 export type PulseMetric = {
   value: number | null;
@@ -53,7 +55,11 @@ async function countOrZero(
   return count ?? 0;
 }
 
-async function registeredAtInRange(fromIso: string, toIsoExclusive: string) {
+async function registeredAtInRange(
+  supabase: SupabaseClient,
+  fromIso: string,
+  toIsoExclusive: string,
+) {
   const pageSize = 1000;
   const stamps: string[] = [];
   for (let from = 0; ; from += pageSize) {
@@ -78,6 +84,7 @@ function pendingMetric(footnote: string): PulseMetric {
 }
 
 export async function fetchBusinessPulse(): Promise<BusinessPulseData> {
+  const supabase = await createClient();
   const now = new Date();
   const periodEnd = pacificDateDaysAgoFrom(now, 1);
   const periodStart = addDaysYmd(periodEnd, -89);
@@ -88,7 +95,7 @@ export async function fetchBusinessPulse(): Promise<BusinessPulseData> {
 
   const [total, stamps] = await Promise.all([
     countOrZero(supabase.from("customers").select("id", { count: "exact", head: true })),
-    registeredAtInRange(startIso, endExclusiveIso),
+    registeredAtInRange(supabase, startIso, endExclusiveIso),
   ]);
 
   const dayKeys = enumerateDays(periodStart, periodEnd);

@@ -1,9 +1,10 @@
 import { PageHeader } from "@/components/ui/PageHeader";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function StoresPage() {
+  const supabase = await createClient();
   const { data: stores, error } = await supabase
     .from("stores")
     .select("id, name, lightspeed_outlet_id, active, created_at")

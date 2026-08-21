@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavIconGlyph } from "./icons";
 import { navItems } from "./nav";
 
@@ -43,11 +43,9 @@ export function Sidebar() {
     const match = navItems.find((item) => sectionOpen(pathname, item.children));
     return match?.label ?? null;
   });
-
-  useEffect(() => {
-    const match = navItems.find((item) => sectionOpen(pathname, item.children));
-    if (match) setOpenLabel(match.label);
-  }, [pathname]);
+  const activeLabel = navItems.find((item) =>
+    sectionOpen(pathname, item.children),
+  )?.label;
 
   const filtered = navItems.filter((item) => {
     if (!query.trim()) return true;
@@ -89,7 +87,8 @@ export function Sidebar() {
         <ul className="space-y-0.5">
           {filtered.map((item) => {
             const hasChildren = Boolean(item.children?.length);
-            const expanded = openLabel === item.label;
+            const expanded =
+              openLabel === item.label || activeLabel === item.label;
             const activeTop = item.href
               ? isActive(pathname, item.href)
               : sectionOpen(pathname, item.children);

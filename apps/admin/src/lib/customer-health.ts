@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Mutually exclusive lifecycle buckets. New wins over visit windows. */
 export const HEALTH_WINDOWS = {
@@ -81,7 +81,9 @@ function trendPct(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-export async function fetchCustomerHealth(): Promise<CustomerHealthSnapshotData> {
+export async function fetchCustomerHealth(
+  supabase: SupabaseClient,
+): Promise<CustomerHealthSnapshotData> {
   const enrolledSince = pacificDateDaysAgo(HEALTH_WINDOWS.newDays);
   const priorEnrolledFrom = pacificDateDaysAgo(HEALTH_WINDOWS.newDays * 2);
   const activeSince = pacificDateDaysAgo(HEALTH_WINDOWS.activeDays);

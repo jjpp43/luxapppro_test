@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,7 @@ export default async function CustomerDetailPage({
   params: Params;
 }) {
   const { id } = await params;
+  const supabase = await createClient();
 
   const { data: customer, error } = await supabase
     .from("customers")

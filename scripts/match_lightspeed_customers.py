@@ -13,8 +13,8 @@ Rules:
 
 Env (apps/admin/.env.local):
   LIGHTSPEED_DOMAIN, LIGHTSPEED_PERSONAL_TOKEN
-  NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
-  (or SUPABASE_SERVICE_ROLE_KEY)
+  NEXT_PUBLIC_SUPABASE_URL
+  SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY)
 
 Usage:
   python3 scripts/match_lightspeed_customers.py --dry-run
@@ -58,6 +58,13 @@ def load_env() -> dict[str, str]:
             key, value = line.split("=", 1)
             env.setdefault(key.strip(), value.strip().strip('"').strip("'"))
     return env
+
+
+def supabase_headers(key: str) -> dict[str, str]:
+    headers = {"apikey": key}
+    if not key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
 
 
 def lightspeed_base(domain: str) -> str:
@@ -127,14 +134,15 @@ def main() -> None:
     token = env.get("LIGHTSPEED_PERSONAL_TOKEN")
     supabase_url = (env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL") or "").rstrip("/")
     supabase_key = (
-        env.get("SUPABASE_SERVICE_ROLE_KEY")
-        or env.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-        or env.get("SUPABASE_ANON_KEY")
+        env.get("SUPABASE_SECRET_KEY")
+        or env.get("SUPABASE_SERVICE_ROLE_KEY")
     )
     if not domain or not token:
         raise SystemExit("Missing LIGHTSPEED_DOMAIN or LIGHTSPEED_PERSONAL_TOKEN")
     if not supabase_url or not supabase_key:
-        raise SystemExit("Missing Supabase URL or key")
+        raise SystemExit(
+            "Missing Supabase URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY"
+        )
 
     ls_headers = {
         "Authorization": f"Bearer {token}",
@@ -142,8 +150,7 @@ def main() -> None:
         "User-Agent": "lux-pro-match/0.1",
     }
     sb_headers = {
-        "apikey": supabase_key,
-        "Authorization": f"Bearer {supabase_key}",
+        **supabase_headers(supabase_key),
         "Accept": "application/json",
         "Content-Type": "application/json",
         "Prefer": "return=minimal",

@@ -7,14 +7,20 @@ Next.js app to verify the TapMango sample import on Supabase project `luxproapp_
 ```bash
 cd apps/admin
 cp .env.example .env.local
-# fill NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+# fill Supabase URL, publishable/anon key, secret key, and site URL
 npm install
+npm run bootstrap:owner -- owner@example.com "Owner Name"
 npm run dev
 ```
 
-Open http://localhost:3000 — overview should show **196,493** customers, **6** stores, **20,100,952** opening points.
+The bootstrap command sends the first owner an invitation. The owner sets a
+password from that email, signs in, and can invite managers or other owners.
 
 ## Notes
 
-- Uses the **anon** key plus temporary staging `SELECT` RLS policies (not production-safe).
+- Dashboard reads use the signed-in SSR session and authenticated RLS policies.
+- Anonymous table grants and temporary staging policies have been removed.
+- `SUPABASE_SECRET_KEY` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) is server-only.
+  Never prefix it with `NEXT_PUBLIC_`.
+- Add local and deployed `/auth/callback` URLs to Supabase Auth redirect URLs.
 - Sample CSV under `data/tapmango/` is gitignored (PII).

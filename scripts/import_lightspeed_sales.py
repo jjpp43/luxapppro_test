@@ -5,7 +5,7 @@ Loads env from apps/admin/.env.local (or process env):
   LIGHTSPEED_DOMAIN
   LIGHTSPEED_PERSONAL_TOKEN
   NEXT_PUBLIC_SUPABASE_URL
-  NEXT_PUBLIC_SUPABASE_ANON_KEY  (or SUPABASE_SERVICE_ROLE_KEY)
+  SUPABASE_SECRET_KEY  (or legacy SUPABASE_SERVICE_ROLE_KEY)
 
 Usage:
   # Version cursor (oldest → newest), stop after N pages
@@ -53,6 +53,16 @@ def load_env() -> dict[str, str]:
             value = value.strip().strip('"').strip("'")
             env.setdefault(key, value)
     return env
+
+
+def supabase_headers(
+    key: str,
+    extra: dict[str, str] | None = None,
+) -> dict[str, str]:
+    headers = {"apikey": key, **(extra or {})}
+    if not key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
 
 
 def lightspeed_base(domain: str) -> str:
@@ -183,12 +193,13 @@ def supabase_upsert(
             url,
             data=data,
             method="POST",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-                "Prefer": "resolution=merge-duplicates,return=minimal",
-            },
+            headers=supabase_headers(
+                supabase_key,
+                {
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates,return=minimal",
+                },
+            ),
         )
         try:
             with urllib.request.urlopen(req, timeout=180) as resp:
@@ -234,11 +245,7 @@ def load_outlet_map(supabase_url: str, supabase_key: str) -> dict[str, str]:
         http_json(
             f"{supabase_url.rstrip('/')}/rest/v1/stores"
             "?select=id,name,lightspeed_outlet_id&lightspeed_outlet_id=not.is.null",
-            {
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Accept": "application/json",
-            },
+            supabase_headers(supabase_key, {"Accept": "application/json"}),
         )
         or []
     )
@@ -389,15 +396,16 @@ def main() -> None:
     token = env.get("LIGHTSPEED_PERSONAL_TOKEN")
     supabase_url = env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL")
     supabase_key = (
-        env.get("SUPABASE_SERVICE_ROLE_KEY")
-        or env.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-        or env.get("SUPABASE_ANON_KEY")
+        env.get("SUPABASE_SECRET_KEY")
+        or env.get("SUPABASE_SERVICE_ROLE_KEY")
     )
 
     if not domain or not token:
         raise SystemExit("Missing LIGHTSPEED_DOMAIN or LIGHTSPEED_PERSONAL_TOKEN")
     if not supabase_url or not supabase_key:
-        raise SystemExit("Missing Supabase URL or key")
+        raise SystemExit(
+            "Missing Supabase URL or SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY"
+        )
 
     base = lightspeed_base(domain)
     headers = {

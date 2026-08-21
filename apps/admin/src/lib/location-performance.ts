@@ -1,9 +1,9 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   HEALTH_WINDOWS,
   pacificDateDaysAgo,
   pacificDateDaysAgoFrom,
 } from "@/lib/customer-health";
-import { supabase } from "@/lib/supabase";
 
 export type LocationWindowDays = 30 | 90;
 
@@ -42,7 +42,10 @@ type SaleRow = {
   occurred_at: string;
 };
 
-async function fetchClosedSalesSince(sinceDate: string): Promise<SaleRow[]> {
+async function fetchClosedSalesSince(
+  supabase: SupabaseClient,
+  sinceDate: string,
+): Promise<SaleRow[]> {
   const pageSize = 1000;
   const all: SaleRow[] = [];
   for (let from = 0; ; from += pageSize) {
@@ -85,7 +88,9 @@ function aggregateSales(
   return { avgSpendCents, visitFrequency };
 }
 
-export async function fetchLocationPerformance(): Promise<LocationPerformanceData> {
+export async function fetchLocationPerformance(
+  supabase: SupabaseClient,
+): Promise<LocationPerformanceData> {
   const since30Live = pacificDateDaysAgo(30);
   const since90Live = pacificDateDaysAgo(90);
   const lapsingFrom = pacificDateDaysAgo(HEALTH_WINDOWS.lapsingToDays);
@@ -117,7 +122,9 @@ export async function fetchLocationPerformance(): Promise<LocationPerformanceDat
   const since30Sales = pacificDateDaysAgoFrom(asOfDate, 30);
   const since90Sales = pacificDateDaysAgoFrom(asOfDate, 90);
 
-  const sales = salesAsOf ? await fetchClosedSalesSince(since90Sales) : [];
+  const sales = salesAsOf
+    ? await fetchClosedSalesSince(supabase, since90Sales)
+    : [];
 
   const rows = await Promise.all(
     stores.map(async (store) => {

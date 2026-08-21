@@ -1,13 +1,12 @@
 # RLS matrix and policies
 
-**Status:** Locked  
-**Updated:** 2026-08-17  
-**Next:** [auth-wiring.md](./auth-wiring.md)
+**Status:** Locked and implemented on staging  
+**Updated:** 2026-08-20  
+**Next:** Customer/device allow-case tests when those auth flows are implemented
 
-**Hold — do not start yet**
-
-- Do **not** write RLS policy SQL until auth wiring is agreed.  
-- Junior must **not** call Supabase for real writes (or treat staging as a write target for app features) until auth wiring + helpers/policies are in place. Reads against mocks/fixtures are fine.
+Auth wiring and the first policy migration are complete. Device policies remain
+deny-by-default until the roadmap 2.5 provisioning flow replaces the placeholder
+device helpers.
 
 This document is the source of truth for Supabase Row Level Security before policy SQL is written. Auth wiring (how sessions map to these roles) comes next; it must satisfy the helpers and roles below.
 

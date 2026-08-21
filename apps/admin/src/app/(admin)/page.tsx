@@ -6,14 +6,15 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { fetchBusinessPulse } from "@/lib/business-pulse";
 import { fetchCustomerHealth } from "@/lib/customer-health";
 import { fetchLocationPerformance } from "@/lib/location-performance";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const supabase = await createClient();
   const [health, locations, pulse, { data: recent }] = await Promise.all([
-    fetchCustomerHealth(),
-    fetchLocationPerformance(),
+    fetchCustomerHealth(supabase),
+    fetchLocationPerformance(supabase),
     fetchBusinessPulse(),
     supabase
       .from("customers")

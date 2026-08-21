@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { DM_Sans, Newsreader } from "next/font/google";
-import { AppShell } from "@/components/shell/AppShell";
 import "./globals.css";
 
 const body = DM_Sans({
@@ -31,7 +30,7 @@ export default function RootLayout({
       className={`${body.variable} ${display.variable} h-full overflow-hidden`}
     >
       <body className="h-full overflow-hidden antialiased">
-        <AppShell>{children}</AppShell>
+        {children}
       </body>
     </html>
   );
