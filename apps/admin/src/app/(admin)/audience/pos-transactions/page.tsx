@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { sandboxStoreIds } from "@/lib/stores";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ export default async function PosTransactionsPage({
   const supabase = await createClient();
   const { data: stores } = await supabase
     .from("stores")
-    .select("id, name")
+    .select("id, name, is_sandbox")
     .order("sort_rank");
 
   let query = supabase
@@ -58,6 +59,10 @@ export default async function PosTransactionsPage({
     .range(from, from + PAGE_SIZE - 1);
 
   if (selectedStore) query = query.eq("store_id", selectedStore);
+  else {
+    const hidden = sandboxStoreIds(stores);
+    if (hidden.length) query = query.not("store_id", "in", `(${hidden.join(",")})`);
+  }
   if (identifiedOnly) query = query.not("customer_id", "is", null);
 
   const { data: sales, count, error } = await query;
@@ -86,7 +91,11 @@ export default async function PosTransactionsPage({
           <FilterChip
             key={s.id}
             href={href({ store: s.id, identified: identifiedOnly ? "1" : undefined })}
-            label={s.name.replace(/^Lux Beauty Supply - /, "")}
+            label={
+              s.is_sandbox
+                ? "QA Lab"
+                : s.name.replace(/^Lux Beauty Supply - /, "")
+            }
             active={selectedStore === s.id}
           />
         ))}

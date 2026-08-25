@@ -7,7 +7,8 @@ Loyalty platform for Las Vegas beauty supply (leaving TapMango).
 | Path | Purpose |
 |---|---|
 | `apps/admin` | Next.js staging admin — verify sample import |
-| `apps/worker` | Lightspeed webhook receiver (not deployed; webhooks and earn off) |
+| `apps/customer` | Expo customer + partner app (EAS). Not wired to Supabase yet. |
+| `apps/worker` | Lightspeed ingest (poll now, webhooks later). Add another store = another token. Not deployed. |
 | `docs/` | Architecture, schema, RLS |
 | `supabase/migrations/` | Schema applied to `luxproapp_test` |
 | `data/tapmango/` | Sample CSV (gitignored, PII) |

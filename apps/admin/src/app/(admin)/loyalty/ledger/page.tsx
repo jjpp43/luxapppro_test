@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { sandboxStoreIds } from "@/lib/stores";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,7 @@ export default async function LedgerPage({
   const supabase = await createClient();
   const { data: stores } = await supabase
     .from("stores")
-    .select("id, name")
+    .select("id, name, is_sandbox")
     .order("sort_rank");
 
   let query = supabase
@@ -63,6 +64,10 @@ export default async function LedgerPage({
 
   if (reason) query = query.eq("reason", reason);
   if (selectedStore) query = query.eq("store_id", selectedStore);
+  else {
+    const hidden = sandboxStoreIds(stores);
+    if (hidden.length) query = query.not("store_id", "in", `(${hidden.join(",")})`);
+  }
 
   const { data: rows, count, error } = await query;
   const total = count ?? 0;
@@ -97,7 +102,11 @@ export default async function LedgerPage({
           <FilterChip
             key={s.id}
             href={href({ reason: reason || undefined, store: s.id })}
-            label={s.name.replace(/^Lux Beauty Supply - /, "")}
+            label={
+              s.is_sandbox
+                ? "QA Lab"
+                : s.name.replace(/^Lux Beauty Supply - /, "")
+            }
             active={selectedStore === s.id}
           />
         ))}

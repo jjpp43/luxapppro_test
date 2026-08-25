@@ -1,6 +1,6 @@
 # Roadmap and working notes
 
-**Updated:** 2026-08-20
+**Updated:** 2026-08-21
 **Purpose:** Snapshot of progress, decisions from build conversations, and the remaining work. Complements [`pre-build-decisions.md`](./pre-build-decisions.md), [`auth-wiring.md`](./auth-wiring.md), and [`rls-matrix.md`](./rls-matrix.md).
 
 ---
@@ -18,9 +18,10 @@ Staging project `luxproapp_test` (`lgesaomtqisfvzcllusy`, us-west-2). Admin: `ap
 | Business Pulse | Four-card TapMango layout; **Total Customers** live; Engaged / spend / visit rate waiting |
 | Location Performance | Counts live; Decatur spend/frequency when sales exist; other stores — |
 | Lightspeed Decatur | Mapped: `luxbeauty4` → outlet Main Outlet → **Lux Beauty Supply - Decatur** |
-| Decatur sales | Closed sales **2026-05-22 → 2026-08-19** (~15,890 in that window). Older Mar–Jun 2025 slice also in `sales` |
+| Decatur sales | Closed sales **2026-02-01 → 2026-08-21** (35,651 in that window). Older Mar–Jun 2025 slice also in `sales` |
 | Customer match | Partial — phone match LS → Lux; unidentified WALKIN tickets do not earn |
-| Earn / redeem / worker / Expo | Earn RPC exists, **gated off**; redeem / Expo not started |
+| Earn / redeem / worker / Expo | Earn RPC gated off; worker polls Lightspeed (Decatur token); redeem / Expo not started |
+| QA Lab | Sandbox store in staging — fake phones/tickets; live stores untouched |
 | Admin staff Auth | Activated on staging; first owner invited and linked; password setup pending |
 
 Scripts: `scripts/import_lightspeed_sales.py`, `scripts/match_lightspeed_customers.py`.
@@ -88,7 +89,7 @@ In the loyalty program or ignore? PM.
 7. Other stores’ Lightspeed → chain pulse + remaining location rows
 8. Referral economics, campaigns/SMS, PITR — after the above
 
-**Unblocked without other stores:** schema leftovers, auth/RLS, Decatur match/earn/webhook, rewards/redeem, admin Groups/Users/ledger/POS list, Expo apps, ops (backups, Sentry, runbooks).
+**Unblocked without other stores:** schema leftovers, auth/RLS, Decatur match/earn/webhook, rewards/redeem, admin Groups/Users/ledger/POS list, Expo apps, ops (backups, Sentry, runbooks), QA Lab scenarios (`docs/qa-lab.md`).
 
 ---
 
@@ -151,12 +152,12 @@ In the loyalty program or ignore? PM.
 | 3.3 | Lightspeed | Decatur last 30 days (through 2026-08-16) | Done | You |
 | 3.4 | Lightspeed | Decatur 90 days (2026-05-22 → 2026-08-19) | Done | You |
 | 3.5 | Lightspeed | Phone match LS customer → Lux | Partial | You |
-| 3.6 | Lightspeed | Keep 30/90-day import current (cron or webhooks) | Not started | You |
+| 3.6 | Lightspeed | Keep 30/90-day import current (cron or webhooks) | Partial — worker poller (not deployed) | You |
 | 3.7 | Lightspeed | Tokens for Craig, East Twain, West Sahara | Not started | PM / client; You map |
 | 3.8 | Lightspeed | Hairway / Hollywood if 1.5 says in | Blocked on 1.5 | You after PM |
 | 3.9 | Lightspeed | Personal token vs OAuth app for production | Open | You recommend; client credentials |
-| 3.10 | Lightspeed | Worker: HTTPS, sale.update, signature, persist raw, upsert sale id | Partial — scaffold, not deployed | You |
-| 3.11 | Lightspeed | Host worker (Fly vs Railway, US West) | Not started | You pick; PM account |
+| 3.10 | Lightspeed | Worker: HTTPS, sale.update, signature, persist raw, upsert sale id | Partial — poll + webhook path; not deployed; webhooks off | You |
+| 3.11 | Lightspeed | Host worker on Fly.io (sjc, always-on) | Config in repo; not deployed | You deploy after PM Fly org |
 | 3.12 | Lightspeed | Which sale states earn | Done — closed sales only | You (from 1.2) |
 | 3.13 | Lightspeed | WALKIN attribution (tablet phone + window) | Deferred — no phone, no points | You (from 1.14) |
 | 3.14 | Lightspeed | Cashier-entered total as degraded fallback | Not started | You |
@@ -210,4 +211,5 @@ In the loyalty program or ignore? PM.
 - [`rls-matrix.md`](./rls-matrix.md) — locked permissions
 - [`auth-wiring.md`](./auth-wiring.md) — next gate before policy SQL
 - [`staging-sample.md`](./staging-sample.md) — import counts
+- [`qa-lab.md`](./qa-lab.md) — sandbox counter: setup and how to run tests
 - [`schema-explained.md`](./schema-explained.md) — tables

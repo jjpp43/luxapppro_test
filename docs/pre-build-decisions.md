@@ -272,7 +272,7 @@ Where things run and who pays / owns accounts.
 
 ### Elaborate
 
-- Fly vs Railway (always-on, US West, no sleep)  
+- Fly.io worker (always-on, US West / sjc, no sleep)  
 - Vercel for admin (pin US West)  
 - Off-vendor backup bucket (R2/B2/S3) on **client** cloud  
 - Staging Supabase project for import dry-runs  
@@ -284,7 +284,7 @@ Where things run and who pays / owns accounts.
 
 | Piece | Owner |
 |---|---|
-| Fly vs Railway, staging topology, backup job design | **You** |
+| Fly.io worker, staging topology, backup job design | **You** |
 | Who creates/owns cloud accounts and cards | **PM / client** |
 | Budget comfort for Pro + worker + Vercel + Twilio | **PM** |
 
@@ -324,7 +324,7 @@ Moving ~197k TapMango rows safely and switching stores.
 3. Recommend tablet auth (device + PIN)  
 4. Match-window / webhook persistence / idempotency  
 5. Monorepo, shared client, UUID for prod, staging projects  
-6. Fly vs Railway, backup automation design  
+6. Fly.io worker config, backup automation design  
 7. Import tooling and reconcile reports  
 8. Token TTL / QR mechanics  
 9. Propose referral anti-abuse defaults  

@@ -46,17 +46,22 @@ type SaleRow = {
 async function fetchClosedSalesSince(
   supabase: SupabaseClient,
   sinceDate: string,
+  excludeStoreIds: string[],
 ): Promise<SaleRow[]> {
   const pageSize = 1000;
   const all: SaleRow[] = [];
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("sales")
       .select("store_id, total_cents, occurred_at")
       .eq("state", "closed")
       .gte("occurred_at", sinceDate)
       .order("occurred_at", { ascending: true })
       .range(from, from + pageSize - 1);
+    if (excludeStoreIds.length) {
+      query = query.not("store_id", "in", `(${excludeStoreIds.join(",")})`);
+    }
+    const { data, error } = await query;
 
     if (error) throw new Error(error.message);
     if (!data?.length) break;
@@ -99,21 +104,35 @@ export async function fetchLocationPerformance(
 
   const { data: stores, error } = await supabase
     .from("stores")
-    .select("id, name, sort_rank")
+    .select("id, name, sort_rank, is_sandbox")
     .eq("active", true)
+    .eq("is_sandbox", false)
     .order("sort_rank");
 
   if (error || !stores?.length) {
     return { rows: [], salesAsOf: null };
   }
 
-  const { data: latestSale, error: latestError } = await supabase
+  const { data: sandboxStores } = await supabase
+    .from("stores")
+    .select("id")
+    .eq("is_sandbox", true);
+  const excludeStoreIds = (sandboxStores ?? []).map((s) => s.id);
+
+  let latestQuery = supabase
     .from("sales")
     .select("occurred_at")
     .eq("state", "closed")
     .order("occurred_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (excludeStoreIds.length) {
+    latestQuery = latestQuery.not(
+      "store_id",
+      "in",
+      `(${excludeStoreIds.join(",")})`,
+    );
+  }
+  const { data: latestSale, error: latestError } = await latestQuery.maybeSingle();
 
   if (latestError) throw new Error(latestError.message);
 
@@ -124,7 +143,7 @@ export async function fetchLocationPerformance(
   const since90Sales = pacificDateDaysAgoFrom(asOfDate, 90);
 
   const sales = salesAsOf
-    ? await fetchClosedSalesSince(supabase, since90Sales)
+    ? await fetchClosedSalesSince(supabase, since90Sales, excludeStoreIds)
     : [];
 
   const rows = await Promise.all(

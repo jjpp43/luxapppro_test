@@ -7,7 +7,7 @@ export default async function StoresPage() {
   const supabase = await createClient();
   const { data: stores, error } = await supabase
     .from("stores")
-    .select("id, name, sort_rank, lightspeed_outlet_id, active, loyalty_earn_enabled, created_at")
+    .select("id, name, sort_rank, lightspeed_outlet_id, active, loyalty_earn_enabled, is_sandbox, created_at")
     .order("sort_rank");
 
   return (
@@ -36,6 +36,7 @@ export default async function StoresPage() {
               <th className="px-4 py-2.5 font-medium">Lightspeed outlet</th>
               <th className="px-4 py-2.5 font-medium">Pilot earn</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
+              <th className="px-4 py-2.5 font-medium">Kind</th>
             </tr>
           </thead>
           <tbody>
@@ -44,7 +45,14 @@ export default async function StoresPage() {
                 <td className="px-4 py-3 tabular-nums text-[var(--muted)]">
                   #{s.sort_rank}
                 </td>
-                <td className="px-4 py-3 font-medium">{s.name}</td>
+                <td className="px-4 py-3 font-medium">
+                  {s.name}
+                  {s.is_sandbox ? (
+                    <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-800">
+                      QA
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3 font-mono text-xs text-[var(--muted)]">
                   {s.lightspeed_outlet_id || "—"}
                 </td>
@@ -71,6 +79,9 @@ export default async function StoresPage() {
                   >
                     {s.active ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-[var(--muted)]">
+                  {s.is_sandbox ? "Sandbox — fake tickets only" : "Live store"}
                 </td>
               </tr>
             ))}

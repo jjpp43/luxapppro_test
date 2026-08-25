@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -81,17 +82,27 @@ def http_json(
     headers: dict[str, str],
     method: str = "GET",
     body: bytes | None = None,
+    timeout: int = 60,
+    retries: int = 4,
 ) -> Any:
-    req = urllib.request.Request(url, data=body, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            raw = resp.read()
-            if not raw:
-                return None
-            return json.loads(raw.decode())
-    except urllib.error.HTTPError as exc:
-        err = exc.read().decode(errors="replace")[:500]
-        raise SystemExit(f"HTTP {exc.code} for {url}\n{err}") from exc
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        req = urllib.request.Request(url, data=body, method=method, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read()
+                if not raw:
+                    return None
+                return json.loads(raw.decode())
+        except urllib.error.HTTPError as exc:
+            err = exc.read().decode(errors="replace")[:500]
+            raise SystemExit(f"HTTP {exc.code} for {url}\n{err}") from exc
+        except (TimeoutError, urllib.error.URLError, ConnectionResetError) as exc:
+            last_error = exc
+            wait = min(30, 2 ** attempt)
+            print(f"retry {attempt + 1}/{retries} after {wait}s: {exc}")
+            time.sleep(wait)
+    raise SystemExit(f"Gave up on {url}: {last_error}") from last_error
 
 
 def to_e164(raw: str | None) -> str | None:
@@ -159,6 +170,7 @@ def main() -> None:
 
     # Distinct LS customer ids on sales that are not yet matched
     ls_ids: list[str] = []
+    seen: set[str] = set()
     offset = 0
     while True:
         path = (
@@ -170,7 +182,8 @@ def main() -> None:
         rows = http_json(f"{supabase_url}{path}", sb_headers) or []
         for row in rows:
             cid = row.get("lightspeed_customer_id")
-            if cid and cid not in ls_ids:
+            if cid and cid not in seen:
+                seen.add(cid)
                 ls_ids.append(cid)
         if len(rows) < 1000:
             break
@@ -184,8 +197,39 @@ def main() -> None:
     print(f"distinct unmatched non-WALKIN LS customers: {len(ls_ids)}")
     print(f"walkin skipped id: {walkin}")
 
+    def apply_link(ls_id: str, lux_id: str) -> None:
+        patch = json.dumps({"lightspeed_customer_id": ls_id}).encode()
+        try:
+            http_json(
+                f"{supabase_url}/rest/v1/customers?id=eq.{lux_id}&lightspeed_customer_id=is.null",
+                sb_headers,
+                method="PATCH",
+                body=patch,
+                timeout=60,
+            )
+        except SystemExit as exc:
+            print(f"customer patch failed lux={lux_id} ls={ls_id}: {exc}")
+            stats["apply_customer_fail"] += 1
+            return
+
+        sales_url = (
+            f"{supabase_url}/rest/v1/sales?lightspeed_customer_id=eq.{ls_id}&customer_id=is.null"
+        )
+        patch_sales = json.dumps({"customer_id": lux_id}).encode()
+        try:
+            http_json(
+                sales_url,
+                sb_headers,
+                method="PATCH",
+                body=patch_sales,
+                timeout=180,
+            )
+            stats["sales_groups_patched"] += 1
+        except SystemExit as exc:
+            print(f"sales patch failed ls={ls_id}: {exc}")
+            stats["apply_sales_fail"] += 1
+
     stats: Counter[str] = Counter()
-    matches: list[tuple[str, str, str]] = []  # ls_id, lux_id, phone
 
     for i, ls_id in enumerate(ls_ids, 1):
         payload = http_json(f"{base}/api/2026-04/customers/{ls_id}", ls_headers)
@@ -226,73 +270,34 @@ def main() -> None:
             )
             continue
 
-        matches.append((ls_id, lux["id"], lux["phone"]))
         stats["matched"] += 1
+        if args.dry_run:
+            if stats["matched"] <= 10:
+                print(f"  would link ls={ls_id} → lux={lux['id']} ({lux['phone']})")
+        else:
+            apply_link(ls_id, lux["id"])
         if i % 40 == 0:
-            print(f"progress {i}/{len(ls_ids)} matched={stats['matched']}")
+            print(
+                f"progress {i}/{len(ls_ids)} matched={stats['matched']} "
+                f"patched={stats['sales_groups_patched']}"
+            )
 
-    print("stats:", dict(stats))
-    print(f"ready to apply: {len(matches)} customer links")
-
-    if args.dry_run:
-        for ls_id, lux_id, phone in matches[:10]:
-            print(f"  would link ls={ls_id} → lux={lux_id} ({phone})")
-        if len(matches) > 10:
-            print(f"  ... and {len(matches) - 10} more")
-        return
-
-    sales_updated = 0
-    for ls_id, lux_id, _phone in matches:
-        # Link customer (idempotent if already set to same id)
-        patch = json.dumps({"lightspeed_customer_id": ls_id}).encode()
-        req = urllib.request.Request(
-            f"{supabase_url}/rest/v1/customers?id=eq.{lux_id}&lightspeed_customer_id=is.null",
-            data=patch,
-            method="PATCH",
-            headers=sb_headers,
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                resp.read()
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode(errors="replace")[:400]
-            # Unique index conflict: another lux row already owns this ls id
-            print(f"customer patch failed lux={lux_id} ls={ls_id}: HTTP {exc.code} {body}")
-            stats["apply_customer_fail"] += 1
-            continue
-
-        # Backfill sales for this LS customer
-        patch_sales = json.dumps({"customer_id": lux_id}).encode()
-        req2 = urllib.request.Request(
-            f"{supabase_url}/rest/v1/sales?lightspeed_customer_id=eq.{ls_id}&customer_id=is.null",
-            data=patch_sales,
-            method="PATCH",
-            headers=sb_headers,
-        )
-        try:
-            with urllib.request.urlopen(req2, timeout=60) as resp:
-                resp.read()
-                sales_updated += 1
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode(errors="replace")[:400]
-            print(f"sales patch failed ls={ls_id}: HTTP {exc.code} {body}")
-            stats["apply_sales_fail"] += 1
-
-    print(f"applied customer links attempted={len(matches)} sales_groups_patched={sales_updated}")
     print("final stats:", dict(stats))
 
+    if args.dry_run:
+        return
+
     try:
-        req3 = urllib.request.Request(
+        updated = http_json(
             f"{supabase_url.rstrip('/')}/rest/v1/rpc/backfill_last_seen_from_sales",
-            data=b"{}",
+            {**sb_headers, "Content-Type": "application/json"},
             method="POST",
-            headers={**sb_headers, "Content-Type": "application/json"},
+            body=b"{}",
+            timeout=180,
         )
-        with urllib.request.urlopen(req3, timeout=180) as resp:
-            print(f"last_seen backfill updated={resp.read().decode() or 0}")
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode(errors="replace")[:400]
-        print(f"last_seen backfill skipped: HTTP {exc.code} {body}")
+        print(f"last_seen backfill updated={updated or 0}")
+    except SystemExit as exc:
+        print(f"last_seen backfill skipped: {exc}")
 
 
 if __name__ == "__main__":

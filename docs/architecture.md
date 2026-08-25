@@ -1,6 +1,6 @@
 # Architecture — draft notes
 
-**Updated:** 2026-08-20  
+**Updated:** 2026-08-21  
 **Status:** Direction agreed; living task list is [`roadmap.md`](./roadmap.md)
 
 ## Proposed stack
@@ -10,7 +10,7 @@
 | Database / auth | **Supabase** (Postgres) | Migrate ~200k TapMango customers here. Phone OTP, RLS, realtime |
 | Admin dashboard | **Next.js** | TapMango-style owner/manager UI |
 | Customer app + tablet | **Expo** (React Native) | iOS + Android customer app; Android tablet(s) at the counter |
-| Transaction ingestion | **Worker on Fly.io or Railway** | Lightspeed **X-Series** `sale.update` webhooks → Supabase |
+| Transaction ingestion | **Worker on Fly.io** (San Jose) | Lightspeed poll now; `sale.update` webhooks later → Supabase |
 
 **Volume assumption:** &lt; ~10k transactions / day across ~4 stores.
 
@@ -46,7 +46,7 @@ One TypeScript codebase for:
 
 That is a real advantage with one small team. Tablet will need kiosk / MDM thinking later (TapMango owns the current hardware); Expo does not remove that, but it does not fight it either.
 
-### Worker on Fly / Railway — yes, at this volume
+### Worker on Fly.io — yes, at this volume
 
 Lightspeed should stay the system of record for **sales**. Lux Pro should **ingest** completed sales (webhooks or polling) and turn them into points / referral qualification. That inbound path does not belong in the Next.js app or on a phone.
 
@@ -57,13 +57,14 @@ Why not only Supabase Edge Functions?
 - Fine for a thin webhook receiver
 - Weaker for longer nightly jobs (reconciliation, gap detection) as data grows — containers have no awkward execution-time ceiling for the same few dollars
 
-**Fly.io vs Railway:** either works at this scale. Requirements that matter more than the brand:
+**Picked Fly.io** (not Railway). We are not chasing extra knobs for their own sake. We need four settings Railway would hide or default badly:
 
-1. **Does not sleep on idle** — a cold/sleeping worker drops Lightspeed webhooks; dropped webhook = sale with no points
-2. **Same region as Supabase** (US West) — worker does many DB round trips; latency compounds on batch/reconcile work
-3. Hold the **service-role key** only in the worker env — never in Expo or the browser
+1. **Does not sleep on idle** — `auto_stop_machines = "off"` and `min_machines_running = 1`. A sleeping worker drops Lightspeed webhooks; dropped webhook = sale with no points
+2. **Pin US West** — `primary_region = "sjc"` (San Jose), next to Supabase `us-west-2`
+3. Hold the **service-role key** only in Fly secrets — never in Expo or the browser
+4. One small always-on VM (~$3–6/month), not a serverless function
 
-Rough cost: on the order of **$5–10/month** for one small instance.
+Admin stays on **Vercel**. Postgres stays on **Supabase**. Do not move either onto Fly.
 
 ---
 
@@ -74,7 +75,7 @@ Customer app (Expo) ─┐
 Tablet app (Expo)   ─┼─→ Supabase (Postgres, Auth, RLS, Realtime)
 Admin (Next.js)     ─┘         ↑
                                │ service role
-Lightspeed ──webhook──→ Worker (Fly or Railway)
+Lightspeed ──webhook──→ Worker (Fly.io, sjc)
 TapMango CSV ──one-time import (local script)──→ Supabase
 ```
 
@@ -89,7 +90,7 @@ There is **no custom monolith API** in front of the database for normal app traf
 | Role | What it is | Who talks to it |
 |---|---|---|
 | **Primary backend** | **Supabase** — Postgres + Auth + RLS (+ Realtime, Postgres functions/RPCs) | Admin, customer app, tablet |
-| **Secondary server** | **Worker** (Fly/Railway) — small, always-on | Lightspeed (and cron). Not called by the apps for everyday reads/writes |
+| **Secondary server** | **Worker** (Fly.io, sjc) — small, always-on | Lightspeed (and cron). Not called by the apps for everyday reads/writes |
 | **Admin host** | **Next.js on Vercel** | Browsers. Mostly a UI; may use server components/actions, but it is not the loyalty API of record |
 
 ### Do the dashboard and apps talk directly to Supabase?
@@ -239,7 +240,7 @@ For a 4-store loyalty app, **do not** build active-active Postgres failover in v
 
 **If Supabase is down for days or the project is gone:**
 
-1. Provision new Postgres (new Supabase project **or** Postgres on Fly/Railway)
+1. Provision new Postgres (new Supabase project)
 2. Restore latest Layer 2 `pg_dump`
 3. Repoint apps (env URLs/keys) — this is why a thin API client / config layer matters
 4. Re-verify Auth / OTP (Twilio wiring)
@@ -301,13 +302,13 @@ Still to nail in integration design (not blockers for “can we webhook?”):
 ### Still open
 
 - Referral cross-check / anti-abuse design
-- Fly vs Railway pick (after checking idle policy + US West)
 - How hard to push worker redundancy + webhook persistence in v1 vs after pilot
 - Choose off-vendor backup target (R2 / B2 / S3) and who owns that cloud account
 - Confirm Supabase Pro billing (~$25/mo)
 
 ### Decided
 
+- **Worker host** — Fly.io in `sjc`, always-on, autostop off. Admin stays on Vercel. Postgres stays on Supabase.
 - **Points ledger** — append-only history in Supabase; balance = sum(delta)
 - **Lightspeed X-Series** — primary earn via `sale.update` webhooks; cashier-entered fallback secondary
 - **PITR** — after pilot
