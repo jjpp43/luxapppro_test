@@ -1,6 +1,8 @@
 # Lux Pro
 
-Loyalty platform for Las Vegas beauty supply (leaving TapMango).
+Loyalty platform for Las Vegas beauty supply. **Current build:** beautician **referral sidecar** (Expo) next to TapMango + Lightspeed — not a TapMango cutover.
+
+Canonical product write-up: [`docs/referral-sidecar.md`](docs/referral-sidecar.md).
 
 ## Apps
 

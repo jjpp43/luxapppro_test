@@ -79,7 +79,7 @@ Lightspeed ──webhook──→ Worker (Fly.io, sjc)
 TapMango CSV ──one-time import (local script)──→ Supabase
 ```
 
-**Boundary:** Lightspeed owns money/sales. Supabase owns customers, points, referrals. Neither writes into the other’s domain of truth.
+**Boundary:** Lightspeed owns money/sales. Supabase owns customers, points, referrals. The app never calls Lightspeed. **Exception (planned):** worker may **create Lightspeed promotions / promo codes** so the cashier can apply 5% on listed SKUs. We still do not write sale tickets. See [`referral-sidecar.md`](./referral-sidecar.md).
 
 ---
 

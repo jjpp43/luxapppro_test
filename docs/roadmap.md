@@ -1,7 +1,7 @@
 # Roadmap and working notes
 
-**Updated:** 2026-08-21
-**Purpose:** Snapshot of progress, decisions from build conversations, and the remaining work. Complements [`pre-build-decisions.md`](./pre-build-decisions.md), [`auth-wiring.md`](./auth-wiring.md), and [`rls-matrix.md`](./rls-matrix.md).
+**Updated:** 2026-08-30
+**Purpose:** Snapshot of progress, decisions from build conversations, and the remaining work. Complements [`pre-build-decisions.md`](./pre-build-decisions.md), [`auth-wiring.md`](./auth-wiring.md), [`rls-matrix.md`](./rls-matrix.md), and [`referral-sidecar.md`](./referral-sidecar.md) (Aug 2026 app pivot).
 
 ---
 
@@ -20,7 +20,7 @@ Staging project `luxproapp_test` (`lgesaomtqisfvzcllusy`, us-west-2). Admin: `ap
 | Lightspeed Decatur | Mapped: `luxbeauty4` → outlet Main Outlet → **Lux Beauty Supply - Decatur** |
 | Decatur sales | Closed sales **2026-02-01 → 2026-08-21** (35,651 in that window). Older Mar–Jun 2025 slice also in `sales` |
 | Customer match | Partial — phone match LS → Lux; unidentified WALKIN tickets do not earn |
-| Earn / redeem / worker / Expo | Earn RPC gated off; worker polls Lightspeed (Decatur token); redeem / Expo not started |
+| Earn / redeem / worker / Expo | Earn RPC gated off; worker polls Lightspeed (Decatur token); Expo **onboarding + home/scan/account** in `apps/customer` (fake OTP, not wired to Supabase) |
 | QA Lab | Sandbox store in staging — fake phones/tickets; live stores untouched |
 | Admin staff Auth | Activated on staging; first owner invited and linked; password setup pending |
 
@@ -42,6 +42,7 @@ Scripts: `scripts/import_lightspeed_sales.py`, `scripts/match_lightspeed_custome
 - PITR after pilot
 - Personal token for Decatur (read-only GET by convention)
 - WALKIN attribution: nearest unmatched sale at the same store within ±15 minutes
+- **Referral sidecar (2026-08-30):** see [`referral-sidecar.md`](./referral-sidecar.md) — 5% off listed SKUs at Lightspeed, beautician 5% store credit, Decatur closed beta, fake OTP, Expo not Flutter, no live earn, no TapMango cutover
 
 ### TapMango pulse math (for when visit cards go live)
 
@@ -125,13 +126,13 @@ In the loyalty program or ignore? PM.
 | 1.6 | PM rules | Pilot store + go/no-go + ~5-day window | Open | PM |
 | 1.7 | PM rules | TapMango delta export near switch weekend | Open | PM / client |
 | 1.8 | PM rules | Sign off per-store reconcile before cutover | Open | PM / client |
-| 1.9 | PM rules | Referral economics (beautician $, customer discount, min basket, hold, cooling-off, last-touch) | Deferred | PM |
-| 1.10 | PM rules | Beautician: same points wallet vs payout report only | Deferred | Both |
+| 1.9 | PM rules | Referral economics (beautician $, customer discount, min basket, hold, cooling-off, last-touch) | Partial — locked in [`referral-sidecar.md`](./referral-sidecar.md); overlap-repeat still open | PM |
+| 1.10 | PM rules | Beautician: same points wallet vs payout report only | Done — **store credit (dollars)**, not shopper 1pt/$1 | Both |
 | 1.11 | PM rules | Referral anti-abuse for v1 | Deferred | Both |
 | 1.12 | PM rules | Confirm tablet device + PIN at the counter | Open | Both |
 | 1.13 | PM rules | Dual tablet: one app / two modes vs two apps | Open | Both |
 | 1.14 | PM rules | “Good enough” WALKIN / phone-to-sale match | Done — nearest unmatched same-store sale within ±15 min | Both |
-| 1.15 | PM rules | Customer app: OTP vs PIN vs no app login (see Discussed) | Open | Both |
+| 1.15 | PM rules | Customer app: OTP vs PIN vs no app login (see Discussed) | Done for beta — **phone + fake OTP `000000`**; Twilio SMS later, not Verify | Both |
 | 2.1 | Auth | Agree auth-wiring.md | Done | Both |
 | 2.2 | Auth | Customer phone OTP ↔ customers (if 1.15 says OTP) | Not started | You |
 | 2.3 | Auth | Admin email/password ↔ staff; owner invites; no self-escalate | Done (owner invited; acceptance pending) | You |
@@ -206,6 +207,7 @@ In the loyalty program or ignore? PM.
 
 ## Related docs
 
+- [`referral-sidecar.md`](./referral-sidecar.md) — beautician QR list, 5% Lightspeed, Expo app, OTP cost
 - [`background.md`](./background.md) — client and product intent
 - [`pre-build-decisions.md`](./pre-build-decisions.md) — owners and open PM questions
 - [`rls-matrix.md`](./rls-matrix.md) — locked permissions

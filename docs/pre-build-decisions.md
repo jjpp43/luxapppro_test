@@ -1,6 +1,8 @@
 # Pre-build decisions — elaborated + owners
 
-**Updated:** 2026-08-12  
+**Updated:** 2026-08-30  
+
+Referral closed-beta rules live in [`referral-sidecar.md`](./referral-sidecar.md) and supersede “defer referral economics” below.
 
 | Owner | Meaning |
 |---|---|
