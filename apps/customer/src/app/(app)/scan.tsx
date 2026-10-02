@@ -9,17 +9,19 @@ import { SecondaryButton } from "@/components/secondary-button";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { dealFromQrData } from "@/lib/referral-qr";
 import { useSession } from "@/lib/session";
 
 export default function ScanScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { claimSampleDeal } = useSession();
+  const { claimDeal, claimSampleDeal } = useSession();
   const [permission, requestPermission] = useCameraPermissions();
   const [hint, setHint] = useState<string | null>(null);
   const locked = useRef(false);
+  const lastBad = useRef(0);
 
-  function claimAndGo() {
+  function goHomeWithSample() {
     if (locked.current) return;
     locked.current = true;
     claimSampleDeal();
@@ -32,8 +34,8 @@ export default function ScanScreen() {
     <Screen tabbed>
       <ThemedText style={styles.title}>Scan</ThemedText>
       <ThemedText themeColor="textSecondary">
-        Point the camera at your beautician’s QR. Tokens are not live yet —
-        any scan or the sample button loads a test 5% list.
+        Point the camera at your beautician’s QR. Only a Lux list loads a deal.
+        The sample button still works if you have one phone.
       </ThemedText>
 
       <View
@@ -46,14 +48,28 @@ export default function ScanScreen() {
             style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-            onBarcodeScanned={() => claimAndGo()}
+            onBarcodeScanned={({ data }) => {
+              if (locked.current) return;
+              const deal = dealFromQrData(data);
+              if (!deal) {
+                const now = Date.now();
+                if (now - lastBad.current > 1600) {
+                  lastBad.current = now;
+                  setHint("Not a Lux list. Scan the beautician QR, or load the sample.");
+                }
+                return;
+              }
+              locked.current = true;
+              claimDeal(deal);
+              router.replace("/home");
+            }}
           />
         ) : (
           <View style={styles.previewCopy}>
             <ThemedText type="smallBold">Camera</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {Platform.OS === "web"
-                ? "Use a phone to scan. On web, try the sample referral."
+                ? "Use a phone to scan. On web, load the sample or show a QR from List."
                 : permission?.granted
                   ? "Starting camera…"
                   : "Allow camera to scan a QR."}
@@ -80,7 +96,7 @@ export default function ScanScreen() {
         />
       ) : null}
 
-      <SecondaryButton label="Load a sample referral" onPress={claimAndGo} />
+      <SecondaryButton label="Load a sample referral" onPress={goHomeWithSample} />
     </Screen>
   );
 }

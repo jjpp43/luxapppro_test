@@ -183,9 +183,7 @@ This changes schema/RLS and the app’s “earnings” screen.
 Cooling-off and last-touch sit with the list above. Cheap flags (cap manual entries, odd QR:manual ratio) can wait for the same conversation.
 
 **Tokens**  
-
-**Tokens**  
-60s TTL + single-use is a technical default; PM rarely cares unless UX complains.
+**Superseded by sidecar:** do **not** use 60s TTL or single-use to stop screenshots. Owner said leaked codes are fine if people walk in. Promo code stays visible. Same list can be shared. Self-referral still blocked.
 
 **Customer discount delivery**  
 Is the discount applied in **Lightspeed** (coupon), as a **loyalty reward**, or manually by cashier? That decides whether you need a Lightspeed write path (you currently don’t write to Lightspeed).
@@ -197,7 +195,7 @@ Is the discount applied in **Lightspeed** (coupon), as a **loyalty reward**, or 
 | Economics, hold, min basket, customer reward, cooling-off, last-touch | **PM — later.** Not this meeting. |
 | Same ledger vs payout-only for beauticians | **Both** — you explain tradeoffs; PM picks |
 | Anti-abuse rules for v1 | **Later** (same conversation as economics) |
-| Token TTL, QR UX, schema for statuses | **You** |
+| Token TTL, QR UX, schema for statuses | **Locked:** shareable, no minutes TTL. Schema is still **You**. |
 | How discount is applied at POS | **PM** (+ you say if it forces Lightspeed write) |
 
 ---

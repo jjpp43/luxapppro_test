@@ -100,7 +100,7 @@ Matches TapMango, counter signup (phone only), and Lightspeed matching. `name` i
 **Why PM cares:** disputes and “who changed this?” are answerable; mistakes are fixed by adding a correction, not silently editing the past. Points are money the business owes customers.
 
 **C. Referrals are events on visits, not a one-time flag on the customer**  
-Beauticians influence repeat purchases. Same customer can be referred many times. QR tokens are short-lived and single-use to reduce screenshot abuse. Cross-check/anti-abuse design is still open — say that honestly.
+Beauticians influence repeat purchases. Same customer can be referred many times. Owner does not care about leaked QR or promo codes: traffic with 5% off still grows sales. Do not pitch minutes TTL or screenshot-proofing. Self-referral (beautician claiming their own list) stays blocked. Cross-check/anti-abuse beyond that is still open — say that honestly.
 
 ### Import story (one sentence)
 

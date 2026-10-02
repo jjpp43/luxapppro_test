@@ -3,7 +3,8 @@ import { Redirect, Stack } from "expo-router";
 import { useSession } from "@/lib/session";
 
 export default function AuthLayout() {
-  const { session } = useSession();
+  const { ready, session } = useSession();
+  if (!ready) return null;
   if (session) return <Redirect href="/home" />;
 
   return (

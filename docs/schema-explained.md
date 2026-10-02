@@ -219,14 +219,14 @@ Same customer can be referred many times over years (different visits / partners
 
 ### `referral_tokens`
 
-Short-lived codes behind the rotating QR.
+Cart-level list token behind the beautician QR. **Sidecar lock:** shareable, not 60s, not one-use. Schema columns below are the old short-lived design; migrate when wiring claim.
 
 | Column | Role |
 |---|---|
-| `partner_id` | Whose code |
-| `token_hash` | Hash of the opaque random string; the raw QR token is returned once and not stored |
-| `expires_at` | Server-side expiry (e.g. ~60s) |
-| `consumed_at` | Set on first successful use — single-use |
+| `partner_id` | Whose list |
+| `token_hash` | Hash of the opaque string in the QR |
+| `expires_at` | Optional. Do not use minutes TTL to stop screenshots. 3-day buy window lives on the claim, not here. |
+| `consumed_at` | Do **not** treat as single-use. Same list may be claimed by more than one shopper. |
 
 `ON DELETE CASCADE` from partner: if you remove a partner, their unused tokens go away.
 

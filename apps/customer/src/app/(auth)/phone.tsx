@@ -20,7 +20,7 @@ export default function PhoneScreen() {
 
   function onContinue() {
     if (!e164) {
-      setError("Enter a 10-digit US number.");
+      setError("Enter a 10 digit US number.");
       return;
     }
     setError(null);
@@ -36,7 +36,7 @@ export default function PhoneScreen() {
         </ThemedText>
         <ThemedText style={styles.title}>What’s your phone?</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.lede}>
-          We’ll use this to sign you in. For now the code is always 000000 —
+          We’ll use this to sign you in. For now the code is always 000000,
           not a real text.
         </ThemedText>
       </View>
@@ -50,7 +50,7 @@ export default function PhoneScreen() {
           autoComplete="tel"
           keyboardType="phone-pad"
           textContentType="telephoneNumber"
-          placeholder="(702) 555-0100"
+          placeholder="(702) 555 0100"
           placeholderTextColor={theme.textSecondary}
           value={formatUsPhone(value)}
           onChangeText={(next) => {

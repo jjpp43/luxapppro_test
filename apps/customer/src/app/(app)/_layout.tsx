@@ -6,9 +6,10 @@ import { useSession } from "@/lib/session";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function AppLayout() {
-  const { session } = useSession();
+  const { ready, session } = useSession();
   const theme = useTheme();
 
+  if (!ready) return null;
   if (!session) return <Redirect href="/phone" />;
 
   return (

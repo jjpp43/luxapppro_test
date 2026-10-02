@@ -1,21 +1,30 @@
 import { Pressable, StyleSheet, View } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { type Href, usePathname, useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/hooks/use-theme";
 import { useTabBarPadding } from "@/lib/screen-insets";
+import { useSession } from "@/lib/session";
 
-const TABS = [
+const BASE_TABS = [
   { href: "/home", label: "Home", match: "home" },
   { href: "/scan", label: "Scan", match: "scan" },
   { href: "/account", label: "Account", match: "account" },
 ] as const;
+
+const LIST_TAB = { href: "/list", label: "List", match: "list" } as const;
 
 export function AppTabBar() {
   const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const insetsPad = useTabBarPadding();
+  const { session } = useSession();
+  const tools = session?.beauticianTools ?? false;
+
+  const tabs = tools
+    ? [BASE_TABS[0], BASE_TABS[1], LIST_TAB, BASE_TABS[2]]
+    : [...BASE_TABS];
 
   return (
     <View
@@ -27,14 +36,16 @@ export function AppTabBar() {
         },
         insetsPad,
       ]}>
-      {TABS.map((tab) => {
-        const selected = pathname.includes(tab.match);
+      {tabs.map((tab) => {
+        const selected =
+          pathname.includes(tab.match) ||
+          (tab.match === "list" && pathname.includes("qr"));
         return (
           <Pressable
             key={tab.href}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            onPress={() => router.replace(tab.href)}
+            onPress={() => router.replace(tab.href as Href)}
             style={({ pressed }) => [
               styles.tab,
               selected && { backgroundColor: theme.backgroundSelected },

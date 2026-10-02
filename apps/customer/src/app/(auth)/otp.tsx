@@ -85,7 +85,7 @@ export default function OtpScreen() {
         }}
         hitSlop={8}>
         <ThemedText type="small" themeColor="accent">
-          {resent ? "Use 000000 — nothing was texted." : "Resend code"}
+          {resent ? "Use 000000. Nothing was texted." : "Resend code"}
         </ThemedText>
       </Pressable>
 

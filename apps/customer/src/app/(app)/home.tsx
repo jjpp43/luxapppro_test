@@ -1,8 +1,10 @@
-import { useRouter } from "expo-router";
+import { type Href, useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { DemoBanner } from "@/components/demo-banner";
 import { PrimaryButton } from "@/components/primary-button";
 import { Screen } from "@/components/screen";
+import { SecondaryButton } from "@/components/secondary-button";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -25,9 +27,11 @@ export default function HomeScreen() {
         </ThemedText>
         <ThemedText style={styles.title}>Home</ThemedText>
         <ThemedText themeColor="textSecondary">
-          {session ? displayPhone(session.phone) : "—"}
+          {session ? displayPhone(session.phone) : ""}
         </ThemedText>
       </View>
+
+      <DemoBanner />
 
       <View
         style={[
@@ -42,7 +46,7 @@ export default function HomeScreen() {
         </ThemedText>
         <ThemedText style={styles.points}>{formatPoints(points)}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Lux points — not TapMango. Earn is off. Redeem still happens in
+          Lux points, not TapMango. Earn is off. Redeem still happens in
           TapMango. A referral is 5% off products, not extra points here.
         </ThemedText>
       </View>
@@ -51,6 +55,13 @@ export default function HomeScreen() {
         label="Scan QR for a referral"
         onPress={() => router.push("/scan")}
       />
+
+      {session?.beauticianTools ? (
+        <SecondaryButton
+          label="Build a shopping list"
+          onPress={() => router.push("/list" as Href)}
+        />
+      ) : null}
 
       {deal ? (
         <View
@@ -69,7 +80,7 @@ export default function HomeScreen() {
           <ThemedText type="smallBold">Show this code at the register</ThemedText>
           {deal.productNames.map((name) => (
             <ThemedText key={name} type="small" themeColor="textSecondary">
-              · {name}
+              {name}
             </ThemedText>
           ))}
           <ThemedText type="small" themeColor="textSecondary">

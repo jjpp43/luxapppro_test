@@ -5,7 +5,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useScreenPadding } from "@/lib/screen-insets";
 
 type Props = ViewProps & {
-  /** Screens above the tab bar — bottom inset lives on the tab bar, not here. */
+  /** Screens above the tab bar. Bottom inset lives on the tab bar, not here. */
   tabbed?: boolean;
   scroll?: boolean;
 };

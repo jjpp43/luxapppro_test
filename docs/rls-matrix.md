@@ -238,8 +238,8 @@ Clients do not raw-insert ledger rows. `authenticated` / `anon` have **INSERT/UP
 | `earn` / `award` | Credit points for a sale (or cashier fallback total) | `service` (Lightspeed webhook); optional `cashier` / `manager` / `owner` for degraded manual earn |
 | `redeem` | Debit points + insert `redemptions` in one transaction | `cashier`, `manager`, `owner` (requires staff elevate on tablet — not bare `device`) |
 | `correct_balance` | Insert compensating ledger row (`reason = correction`) | `cashier`, `manager`, `owner` (requires staff elevate on tablet — not bare `device`) |
-| `issue_referral_token` | Create short-lived single-use token | `partner` |
-| `consume_referral_token` | Attach pending referral (QR path) | `customer` and/or `partner` (manual phone path may be separate RPC) |
+| `issue_referral_token` | Create shareable cart token (no minutes TTL) | `partner` |
+| `consume_referral_token` | Attach pending referral (QR path). Same shareable list may attach to more than one customer. | `customer` and/or `partner` (manual phone path may be separate RPC) |
 | `merge_customers` | Phone identity merge (later) | `manager`, `owner` |
 
 ### RPC hardening checklist

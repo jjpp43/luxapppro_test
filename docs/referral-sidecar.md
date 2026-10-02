@@ -31,15 +31,15 @@ Dashboard and counter tablet stay paused. Loyalty earn flags stay false. Do not 
 | Quantity | If a SKU is on the list, **every unit** of that SKU on the ticket gets 5%. List qty is a suggestion, not a cap. |
 | Extra items | Not on the list → full price. |
 | Buy window | **3 days** after the customer **claims** the list. |
-| QR lifetime | Scan token should expire in **minutes** so a screenshot cannot live forever. 3 days is the buy window, not the QR TTL. |
+| QR / code sharing | **Not a threat.** Owner is volume over margin: a shopper in the door with 5% off is still a win. Show the promo code large. Screenshots, group chats, salon posts are fine. Do **not** build minutes TTL, hidden codes, or one-use Lightspeed promos to stop leaking. Same list / same code can bring more than one customer. Still block **self-referral** (beautician claiming their own list). |
 | Store | **Decatur only** for catalog and live path. |
 | Partners | Owner adds phones in **admin**. No self-serve “I am a beautician.” |
 | Login | Phone OTP. Closed beta: **fake code `000000`**. No Twilio until the client has an account. |
 | Role after OTP | Always **customer**. If `referral_partners` has that phone, Account can show **Beautician tools** on/off. Do not ask at OTP. |
 | Returns / voids | **No merit for anyone.** Claw back customer discount benefit and beautician credit. |
 | Register | Cashier applies a **Lightspeed promo code** (type or scan from the app). The phone cannot reach into the open cart. |
-| Promo automation | Create a one-use Lightspeed promotion/code via **Promotions API** when they claim. `POST /discount` is a calculator only — it does not change a live sale. Confirm the store plan includes promo codes (usually Pro / Advanced). Fallback: cashier keys 5% on those lines. |
-| Repeat | One QR = one cart = one 3-day claim. A **new list later is a new QR**. Overlap with a previous list after the window ends is **not fully locked** — tighten if people game it. |
+| Promo automation | Prefer a **reusable** Lightspeed promo (or cashier keys 5% on listed lines). A one-use code would fight the owner’s “sharing is fine” rule. `POST /discount` is a calculator only — it does not change a live sale. Confirm the store plan includes promo codes (usually Pro / Advanced). |
+| Repeat | One QR = one cart of SKUs. A **new list later is a new QR**. Several shoppers may claim/use the same shared list. Overlap with a previous list after the window ends is **not fully locked** — only tighten if it actually hurts, not to police sharing. |
 | Self-referral | Blocked (partner `customer_id` unique / same phone). |
 
 **Beautician credit scale:** 5% of a $40 SKU is **$2** store credit, not 2 loyalty points.
@@ -49,9 +49,9 @@ Dashboard and counter tablet stay paused. Loyalty earn flags stay false. Do not 
 ## How a referral runs
 
 1. Owner adds the beautician (phone) in admin.  
-2. Beautician signs in (same app), turns on Beautician tools, sees **Decatur catalog**, builds a list, shows **one QR**.  
-3. Customer installs if needed, **fake OTP**, scans, **claims** the list.  
-4. App shows eligible products, 5% / $20 min / time left, **promo code or barcode**.  
+2. Beautician signs in (same app), turns on Beautician tools, sees **Decatur catalog**, builds a list, shows **one QR** (and the promo code in the clear). Sharing that QR or code is allowed.  
+3. Customer installs if needed, **fake OTP**, scans, **claims** the list. A friend who got the same screenshot can claim it too.  
+4. App shows eligible products, 5% / $20 min / time left, **promo code or barcode**, large enough to read across the counter or a photo.  
 5. At Lightspeed they buy whatever they want. Listed SKUs get 5%. Ticket must be ≥ $20.  
 6. Worker matches **line items** on the closed sale to the list. Beautician credit = 5% of those lines.  
 7. Return/void → claw both sides.
@@ -66,7 +66,7 @@ Path: `apps/customer`. EAS project `b7dad647-e507-4987-a4b0-05104c8dc1ed`, owner
 
 **Local:** `cd apps/customer && npx expo start`. EAS is for installable binaries / TestFlight later, not day-to-day JS. GitHub connected to Expo ≠ a development build exists.
 
-**Forced light mode.** Outer padding uses device safe area (island / no island / Android nav) plus a 12pt rest and 20pt sides. Tab screens do not double-count the home indicator (tab bar owns bottom inset).
+**Forced light mode.** Outer padding uses device safe area (island / no island / Android nav) plus a 20pt rest and 20pt sides. On web, a status-bar / home-indicator floor is used so the laptop demo is not flush to the chrome. Tab screens do not double-count the home indicator (tab bar owns bottom inset).
 
 ### Screens (closed beta)
 
@@ -107,7 +107,7 @@ Worker    →  Lightspeed (sales poll, later product/stock sync, later promo cre
 
 Start stock at **15 minutes** (same idea as the sales poller). Full catalog every minute is waste.
 
-**Need in DB (not built):** product catalog; **line items** on sales (today we slim `raw` and skip lines because they blew upsert timeouts); cart-level referral token (SKU set, not one product); beautician **credit** ledger; claim/consume RPCs.
+**Need in DB (not built):** product catalog; **line items** on sales (today we slim `raw` and skip lines because they blew upsert timeouts); cart-level referral token (SKU set, not one product, **shareable**, no minutes TTL); beautician **credit** ledger; claim RPCs (not consume-once).
 
 **Lightspeed Promotions API** can target `product_id`, attach one-use codes, set an end time. One sale can take **one** promo code (Lightspeed limit). Writing **promotions** is a narrow exception; we still do not write tickets.
 

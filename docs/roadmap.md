@@ -188,7 +188,7 @@ In the loyalty program or ignore? PM.
 | 6.5 | Apps | Store submit | Not started | PM accounts; You submit |
 | 6.6 | Apps | MDM / kiosk after TapMango hardware | Later | Both |
 | 7.1 | Referrals | Schema + QR / manual capture | Not started | You |
-| 7.2 | Referrals | Token TTL / single-use | Not started | You |
+| 7.2 | Referrals | Shareable cart token (no minutes TTL; not one-use) | Not started | You |
 | 7.3 | Referrals | Admin placeholders until 1.9–1.11 | Not started | You |
 | 7.4 | Referrals | Payouts / discount delivery / anti-abuse | Deferred | PM then You |
 | 8.1 | Ops | Vercel admin US West | Staging deployed | You; client billing later |
