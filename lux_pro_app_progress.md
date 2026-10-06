@@ -1,6 +1,6 @@
 # Lux Pro — ship progress
 
-**Updated:** 2026-10-02
+**Updated:** 2026-10-05
 
 **Ship** means the Decatur closed-beta sidecar: list QR → 5% at Lightspeed → beautician store credit. Not TapMango replacement, not live earn, not tablets.
 
@@ -12,14 +12,15 @@ OTP stays **phone + `000000`** until the client has a paid SMS account (Twilio o
 
 - Product rules locked (5%, $20 min, 3-day window, Decatur, shareable codes, self-referral blocked)
 - Admin + schema + TapMango import + Decatur sale **headers** on staging
-- Expo demo loop on this laptop (phone, `000000`, catalog, list, QR, claim). **Not committed.** Earn stays off.
+- Expo demo loop on `main` (`732d1f7`). Earn stays off.
 
 ---
 
 ## A. Client can see it
 
-- [x] Commit and push the demo (otherwise a clone is the old scaffold only)
-- [ ] EAS **preview** on 1–2 phones (not Expo Go). Android first; iOS needs Apple account + UDID
+- [x] Commit and push the demo (`732d1f7` on `jjpp43/luxapppro_test`)
+- [ ] iOS first. Simulator via `npx expo run:ios` in `apps/customer` (not Expo Go). A real iPhone needs an Apple Developer account + UDID, or TestFlight.
+- [ ] Android later. Preview APK already built, do not install yet: https://expo.dev/accounts/jpark_dev/projects/lux-pro-app/builds/7d484b58-ee50-43b1-b041-527924b3b69b
 - [ ] PM runs the 5-minute script (`docs/demo-for-pm.md`) and gets a yes/no on the loop
 - [ ] Confirm: cashier types a code vs keys 5%; who the first 3–5 beauticians are
 

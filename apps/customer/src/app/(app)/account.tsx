@@ -1,7 +1,6 @@
 import { type Href, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 
-import { DemoBanner } from "@/components/demo-banner";
 import { PrimaryButton } from "@/components/primary-button";
 import { Screen } from "@/components/screen";
 import { ThemedText } from "@/components/themed-text";
@@ -20,15 +19,9 @@ export default function AccountScreen() {
   return (
     <Screen tabbed scroll>
       <ThemedText style={styles.title}>Account</ThemedText>
-      <ThemedText themeColor="textSecondary">
-        Signed in as a customer. Beautician tools are a demo switch. Production
-        only shows them if the owner added this phone.
-      </ThemedText>
       <ThemedText type="smallBold">
         {session ? displayPhone(session.phone) : ""}
       </ThemedText>
-
-      <DemoBanner />
 
       <View
         style={[
@@ -42,7 +35,7 @@ export default function AccountScreen() {
           <View style={styles.toggleCopy}>
             <ThemedText type="smallBold">Beautician tools</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Turn on for the phone that builds the list.
+              Lists and QR for your clients.
             </ThemedText>
           </View>
           <Switch
@@ -70,8 +63,7 @@ export default function AccountScreen() {
             {formatDollars(session?.storeCreditCents ?? 0)}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Demo amount. Production is 5% of listed SKUs they actually bought,
-            in dollars, not shopper points.
+            5% of listed products your clients buy.
           </ThemedText>
           <Pressable
             onPress={() => router.push("/list" as Href)}
@@ -85,30 +77,6 @@ export default function AccountScreen() {
           </Pressable>
         </View>
       ) : null}
-
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.backgroundElement,
-            borderColor: theme.border,
-          },
-        ]}>
-        <ThemedText type="smallBold">How to demo this</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          1. This phone: turn on Beautician tools, build a list, show the QR.
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          2. Other phone: sign in (any number, code 000000), open Scan.
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          3. Scan the QR. Home shows 5% and a register code.
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          4. Tell them the cashier would type that code. Lightspeed is not
-          connected. Use a development build, not Expo Go.
-        </ThemedText>
-      </View>
 
       <View style={styles.footer}>
         <PrimaryButton label="Sign out" onPress={signOut} />

@@ -1,7 +1,6 @@
 import { type Href, useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { DemoBanner } from "@/components/demo-banner";
 import { PrimaryButton } from "@/components/primary-button";
 import { Screen } from "@/components/screen";
 import { SecondaryButton } from "@/components/secondary-button";
@@ -31,8 +30,6 @@ export default function HomeScreen() {
         </ThemedText>
       </View>
 
-      <DemoBanner />
-
       <View
         style={[
           styles.pointsCard,
@@ -46,8 +43,7 @@ export default function HomeScreen() {
         </ThemedText>
         <ThemedText style={styles.points}>{formatPoints(points)}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Lux points, not TapMango. Earn is off. Redeem still happens in
-          TapMango. A referral is 5% off products, not extra points here.
+          Earn is paused.
         </ThemedText>
       </View>
 

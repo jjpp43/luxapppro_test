@@ -29,8 +29,7 @@ export default function ListScreen() {
       <View style={styles.copy}>
         <ThemedText style={styles.title}>List</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Pick products for one QR. Demo catalog, not live Decatur stock.
-          Quantity is a suggestion; 5% applies to every unit of a listed SKU.
+          Pick products for this client. They get 5% off every unit.
         </ThemedText>
       </View>
 

@@ -144,7 +144,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (trimmed !== FAKE_OTP) {
         return {
           ok: false,
-          error: "That code is not right. Use 000000 for now.",
+          error: "That code is not right.",
         };
       }
       setSession(emptySession(pendingPhone));

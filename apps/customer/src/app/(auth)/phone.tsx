@@ -36,8 +36,7 @@ export default function PhoneScreen() {
         </ThemedText>
         <ThemedText style={styles.title}>What’s your phone?</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.lede}>
-          We’ll use this to sign you in. For now the code is always 000000,
-          not a real text.
+          We’ll text you a code to sign in.
         </ThemedText>
       </View>
 

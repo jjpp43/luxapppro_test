@@ -34,8 +34,7 @@ export default function ScanScreen() {
     <Screen tabbed>
       <ThemedText style={styles.title}>Scan</ThemedText>
       <ThemedText themeColor="textSecondary">
-        Point the camera at your beautician’s QR. Only a Lux list loads a deal.
-        The sample button still works if you have one phone.
+        Point the camera at your beautician’s QR.
       </ThemedText>
 
       <View
@@ -55,7 +54,7 @@ export default function ScanScreen() {
                 const now = Date.now();
                 if (now - lastBad.current > 1600) {
                   lastBad.current = now;
-                  setHint("Not a Lux list. Scan the beautician QR, or load the sample.");
+                  setHint("Not a Lux list.");
                 }
                 return;
               }
@@ -69,7 +68,7 @@ export default function ScanScreen() {
             <ThemedText type="smallBold">Camera</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {Platform.OS === "web"
-                ? "Use a phone to scan. On web, load the sample or show a QR from List."
+                ? "Use a phone to scan."
                 : permission?.granted
                   ? "Starting camera…"
                   : "Allow camera to scan a QR."}
@@ -90,7 +89,7 @@ export default function ScanScreen() {
           onPress={async () => {
             const result = await requestPermission();
             if (!result.granted) {
-              setHint("Camera is off. You can still load a sample referral.");
+              setHint("Camera is off.");
             }
           }}
         />

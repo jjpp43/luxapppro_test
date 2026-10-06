@@ -29,8 +29,7 @@ export default function QrScreen() {
       <View style={styles.copy}>
         <ThemedText style={styles.title}>QR</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Customer opens Scan on the other phone and points at this. Fake token.
-          Sharing this QR or the code is fine. The 5% lasts 3 days after they claim.
+          Have them scan this. The 5% lasts 3 days after they claim.
         </ThemedText>
       </View>
 

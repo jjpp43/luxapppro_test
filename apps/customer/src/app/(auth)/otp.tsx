@@ -8,7 +8,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { displayPhone } from "@/lib/phone";
-import { FAKE_OTP, useSession } from "@/lib/session";
+import { useSession } from "@/lib/session";
 
 export default function OtpScreen() {
   const theme = useTheme();
@@ -42,8 +42,7 @@ export default function OtpScreen() {
       <View style={styles.copy}>
         <ThemedText style={styles.title}>Enter the code</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Sent to {displayPhone(pendingPhone)}. For now the code is always{" "}
-          {FAKE_OTP}.
+          Sent to {displayPhone(pendingPhone)}.
         </ThemedText>
       </View>
 
@@ -54,7 +53,7 @@ export default function OtpScreen() {
           keyboardType="number-pad"
           textContentType="oneTimeCode"
           maxLength={6}
-          placeholder="000000"
+          placeholder="••••••"
           placeholderTextColor={theme.textSecondary}
           value={code}
           onChangeText={(next) => {
@@ -85,7 +84,7 @@ export default function OtpScreen() {
         }}
         hitSlop={8}>
         <ThemedText type="small" themeColor="accent">
-          {resent ? "Use 000000. Nothing was texted." : "Resend code"}
+          {resent ? "Sent again." : "Resend code"}
         </ThemedText>
       </Pressable>
 
