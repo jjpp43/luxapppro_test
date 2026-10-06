@@ -1,5 +1,6 @@
 import { type Href, useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { Screen } from "@/components/screen";
@@ -71,9 +72,17 @@ export default function HomeScreen() {
           <ThemedText type="smallBold" themeColor="accent">
             Active deal
           </ThemedText>
+          <View style={styles.qrPad}>
+            <QRCode
+              value={deal.promoCode}
+              size={180}
+              color="#1c1412"
+              backgroundColor="#ffffff"
+            />
+          </View>
           <ThemedText style={styles.promo}>{deal.promoCode}</ThemedText>
           <ThemedText themeColor="textSecondary">{dealSummary(deal)}</ThemedText>
-          <ThemedText type="smallBold">Show this code at the register</ThemedText>
+          <ThemedText type="smallBold">Show this at the register</ThemedText>
           {deal.productNames.map((name) => (
             <ThemedText key={name} type="small" themeColor="textSecondary">
               {name}
@@ -137,11 +146,18 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.two,
   },
+  qrPad: {
+    alignSelf: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: Spacing.three,
+  },
   promo: {
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
     letterSpacing: 1,
+    textAlign: "center",
   },
   emptyCard: {
     borderWidth: 1,
